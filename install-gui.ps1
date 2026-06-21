@@ -28,11 +28,24 @@ function Find-Py {
 $py = Find-Py
 if (-not $py) {
   Write-Host 'Python 3 is required. Installing per-user (no admin needed)...'
+  # Prefer winget, but it often fails in China (source-update errors). Fall back
+  # to the python.org installer whenever winget is missing OR errors out, so a
+  # broken winget source never aborts the whole install.
+  $wingetOk = $false
   if (Get-Command winget -ErrorAction SilentlyContinue) {
-    winget install --id Python.Python.3.12 --silent `
-      --accept-package-agreements --accept-source-agreements
-  } else {
-    Write-Host 'No winget found; downloading the python.org installer...'
+    try {
+      # --source winget skips the msstore source, which is the one that most
+      # often fails to update behind China networks.
+      winget install --id Python.Python.3.12 --silent --source winget `
+        --accept-package-agreements --accept-source-agreements
+      if ($LASTEXITCODE -eq 0) { $wingetOk = $true }
+      else { Write-Host "winget failed (exit $LASTEXITCODE); falling back to python.org..." }
+    } catch {
+      Write-Host "winget failed ($($_.Exception.Message)); falling back to python.org..."
+    }
+  }
+  if (-not $wingetOk) {
+    Write-Host 'Downloading the python.org installer...'
     $exe = Join-Path $env:TEMP 'py-installer.exe'
     Invoke-WebRequest 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe' `
       -OutFile $exe -UseBasicParsing
