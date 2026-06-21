@@ -2566,6 +2566,30 @@ def _smoke_star_codex(sse):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════════════════
+def _open_browser(url):
+    """Open url in the default browser, best-effort across platforms. On Windows
+    os.startfile is the most reliable opener; webbrowser.open is the fallback."""
+    try:
+        if IS_WIN:
+            os.startfile(url)  # type: ignore[attr-defined]  # Windows-only
+            return
+    except Exception:
+        pass
+    try:
+        import webbrowser
+        if webbrowser.open(url):
+            return
+    except Exception:
+        pass
+    try:
+        if IS_MAC:
+            subprocess.Popen(["open", url])
+        elif IS_LINUX:
+            subprocess.Popen(["xdg-open", url])
+    except Exception:
+        pass
+
+
 def main():
     port = PORT
     if "--port" in sys.argv:
@@ -2595,25 +2619,21 @@ def main():
         already_ours = probe.connect_ex(("127.0.0.1", port)) == 0
         probe.close()
         if already_ours:
-            print(f"  ✓ 安装器已经在运行了，打开浏览器访问: http://localhost:{port}")
+            # Friendly "already running" notice — re-running the one-liner in a
+            # second window is harmless, it just finds the existing server.
+            print(f"\n  ✓ 安装器已经在运行了，不用重复运行。")
+            print(f"  直接在浏览器打开： http://localhost:{port}")
+            print(f"  想重新来过：先在原来那个窗口按 Ctrl+C 停掉，再运行本命令。\n")
             if not TEST_MODE:
-                try:
-                    import webbrowser
-                    webbrowser.open(f"http://localhost:{port}")
-                except Exception:
-                    pass
+                _open_browser(f"http://localhost:{port}")
             sys.exit(0)
-        print(f"  ✗ 端口 {port} 被占用: {e}")
+        print(f"  ✗ 端口 {port} 被占用（但不是本工具）: {e}")
         print(f"  请尝试: python3 server.py --port {port + 1}")
         sys.exit(1)
 
     # Don't auto-open a browser under self-test (headless CI would hang/fail).
     if not TEST_MODE:
-        try:
-            import webbrowser
-            webbrowser.open(f"http://localhost:{port}")
-        except Exception:
-            pass
+        _open_browser(f"http://localhost:{port}")
 
     try:
         srv.serve_forever()
