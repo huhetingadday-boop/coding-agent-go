@@ -20,6 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import platform
+import re
 import shutil
 from pathlib import Path
 
@@ -1226,7 +1227,7 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
         optional = bool(step[2]) if len(step) > 2 else False
         pct = round(i / max(1, len(steps)) * 100)
         sse(pct=pct, label=label)
-        sse(log=f"── {label} ──", cls="dim")
+        sse(log=f"── {label}{'（可选）' if optional else ''} ──", cls="dim")
         t_step = time.time()
         try:
             fn()
@@ -1234,9 +1235,12 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
         except Exception as e:
             _dbg(f"step_failed: {label}\n{traceback.format_exc()}")
             if optional:
-                # Best-effort step (gh CLI, autostart, smoke-test): warn and
-                # continue so the actual product still installs.
-                sse(log=f"  ⚠ {label} 跳过: {e}", cls="warn")
+                # Optional extras (gh CLI for the repo-star bonus, smoke test)
+                # aren't needed for the product to work. Show a calm, reassuring
+                # line — not a coral warning — and keep the raw error in the debug
+                # log only, so a failed bonus step never looks like the whole
+                # install failed.
+                sse(log=f"  ⓘ {label}（可选）没成功也不影响使用，已跳过", cls="dim")
                 continue
             err(f"{label} 失败: {e}")
             return
@@ -1303,8 +1307,11 @@ def _plan(product, pv, api_key, sse):
             sse(log="  ⚠ gh 没登录，跳过 star", cls="warn")
 
     else:  # codex
-        if not _which("node"):
-            steps.append(("装 Node.js", lambda: _install_node(sse), False))
+        # Codex needs Node >= 22: mimo2codex -> better-sqlite3 only has prebuilt
+        # binaries for Node 22+, so an older Node forces a source build that
+        # needs Visual Studio and fails. Install/upgrade if missing or too old.
+        if not _which("node") or _node_major() < 22:
+            steps.append(("装 Node.js (22+)", lambda: _install_node(sse, 22), False))
         if not _has_our("codex", "@openai/codex"):
             steps.append(("装 Codex CLI", lambda: _install_codex(sse), False))
         if not _npm_has("mimo2codex"):
@@ -1511,6 +1518,16 @@ def _npm_has(pkg):
                               capture_output=True, timeout=15).returncode == 0
     except Exception:
         return False
+
+
+def _node_major():
+    """Installed Node.js major version (e.g. 20), or 0 if not found."""
+    try:
+        out = subprocess.run(_win_cmd(["node", "-v"]),
+                             capture_output=True, text=True, timeout=15).stdout.strip()
+        return int(out.lstrip("v").split(".")[0])
+    except Exception:
+        return 0
 
 
 def _resolve_cmd_target(path):
@@ -2024,10 +2041,12 @@ def _smoke_star_gemini(sse):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Shared codex/gemini helpers
 # ═══════════════════════════════════════════════════════════════════════════════
-def _install_node(sse):
+def _install_node(sse, min_major=0):
+    # min_major: require at least this Node major (Codex needs >= 22 because
+    # mimo2codex -> better-sqlite3 only ships prebuilt binaries for Node 22+).
     if _skip_for_test(sse, "装 Node.js"):
         return
-    if _which("node") and _which("npm"):
+    if _which("node") and _which("npm") and _node_major() >= min_major:
         sse(log="  已检测到 Node.js，跳过安装", cls="dim")
         return
     if IS_MAC:
@@ -2037,25 +2056,30 @@ def _install_node(sse):
         raise Exception("需要 Homebrew — 请在首页选择 Claude Code（无需 Node.js）或先安装 brew")
     elif IS_WIN:
         _refresh_windows_path()
-        if _which("node") and _which("npm"):
+        if _which("node") and _which("npm") and _node_major() >= min_major:
             sse(log="  已检测到 Node.js，跳过安装", cls="dim")
             return
         if _which("winget"):
             try:
                 # --source winget skips the flaky msstore source that hangs on
-                # China networks (see _install_gh for the same fix).
+                # China networks (see _install_gh). --force so an existing older
+                # Node (e.g. 20) is actually upgraded, not skipped as "installed".
                 _run(["winget", "install", "--id", "OpenJS.NodeJS.LTS", "--silent",
-                      "--source", "winget", "--disable-interactivity",
+                      "--source", "winget", "--disable-interactivity", "--force",
                       "--accept-package-agreements", "--accept-source-agreements"],
                      timeout=600)
                 _refresh_windows_path()
-                return
+                if _node_major() >= min_major:
+                    return
+                sse(log="  winget 装的 Node 版本仍偏低，改用 zip…", cls="dim")
             except Exception as e:
-                sse(log=f"  winget 失败，改下 MSI: {e}", cls="dim")
+                sse(log=f"  winget 失败，改下 zip: {e}", cls="dim")
         # Fallback: the official Node MSI is per-machine and needs admin, which
         # a double-clicked launcher does not have. Use the portable ZIP instead
         # — unzip into %LOCALAPPDATA%\Programs\nodejs (no admin), then PATH it.
-        ver = "v20.18.0"
+        # v22 LTS (not 20): mimo2codex's better-sqlite3 only has prebuilts for
+        # Node 22+, so Node 20 would force a source build (needs Visual Studio).
+        ver = "v22.11.0"
         dest = Path(os.path.expandvars(r"%LOCALAPPDATA%")) / "Programs" / "nodejs"
         sse(log="下载 Node.js LTS (zip, 免管理员)…", cls="dim")
         import zipfile
@@ -2137,6 +2161,44 @@ def _install_codex(sse):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Codex → mimo2codex proxy steps
 # ═══════════════════════════════════════════════════════════════════════════════
+def _seed_better_sqlite3_prebuild(sse, log_text):
+    """mimo2codex depends on better-sqlite3 (native). In China its prebuilt
+    binary times out downloading from GitHub releases, and there's no compiler
+    (Visual Studio) to fall back to, so the install fails. prebuild-install logs
+    the exact cache path it wants ("cached prebuild @ ...<asset>.tar.gz"); parse
+    it from the failed run, fill that file from a fast CN GitHub proxy, and the
+    retry uses the cached binary — no GitHub round-trip, no compiler. Returns
+    True if a prebuilt was placed. Best-effort, Windows-only."""
+    if not IS_WIN:
+        return False
+    m = re.search(r"cached prebuild @ (.+?better-sqlite3-v[\d.]+-node-v\d+-win32-x64\.tar\.gz)",
+                  log_text)
+    if not m:
+        _dbg("seed: no prebuild cache path in npm output")
+        return False
+    cache_path = Path(m.group(1).strip().strip('"'))
+    asset = cache_path.name.split("-", 1)[1] if "-" in cache_path.name else cache_path.name
+    vm = re.search(r"better-sqlite3-v([\d.]+)-node", asset)
+    if not vm:
+        return False
+    gh = (f"https://github.com/WiseLibs/better-sqlite3/releases/download/"
+          f"v{vm.group(1)}/{asset}")
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return False
+    for host in ("https://ghfast.top/", "https://gh-proxy.com/", ""):
+        try:
+            sse(log="  预取 better-sqlite3 预编译包（避免编译/超时）…", cls="dim")
+            _download(host + gh, cache_path, timeout=120)
+            if cache_path.exists() and cache_path.stat().st_size > 1000:
+                sse(log="  better-sqlite3 预编译包就绪", cls="ok")
+                return True
+        except Exception as e:
+            _dbg(f"seed download via {host or 'direct'} failed: {e}")
+    return False
+
+
 def _install_m2c(sse):
     if _skip_for_test(sse, "安装 mimo2codex"):
         return
@@ -2144,6 +2206,22 @@ def _install_m2c(sse):
         sse(log="  已检测到 mimo2codex，跳过安装", cls="dim")
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
+    if IS_WIN:
+        # Capture the first attempt: if better-sqlite3's prebuilt can't be
+        # fetched, pre-seed it from a CN proxy (see above) and retry once.
+        cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
+        cmd = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
+               "--cache", cache, "--foreground-scripts", "--registry", NPM_MIRROR]
+        r = _run(cmd, check=False, text=True, timeout=240)
+        if r.returncode == 0:
+            _refresh_windows_path()
+            return
+        out = (r.stdout or "") + (r.stderr or "")
+        if _seed_better_sqlite3_prebuild(sse, out):
+            _run(cmd, timeout=240)
+            _refresh_windows_path()
+            return
+        raise Exception("mimo2codex 安装失败：better-sqlite3 预编译包获取失败（见调试日志）")
     _npm_global("mimo2codex", sse)
     _refresh_windows_path()
 
