@@ -23,7 +23,7 @@ import shutil
 from pathlib import Path
 
 PORT = 17860
-REPO_URL = "https://github.com/hhwyt/coding-agent-go"
+REPO_URL = "https://github.com/huhetingadday-boop/coding-agent-go"
 BASE_DIR = Path(__file__).resolve().parent
 PROVIDERS_PATH = BASE_DIR / "providers.json"
 
@@ -452,7 +452,23 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 .footer{
   text-align:center;color:var(--text3);font-size:12.5px;padding:0 28px 48px;line-height:1.7
 }
-.footer a{color:var(--text2);font-weight:400}
+.footer a.gh-link{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:999px;text-decoration:none;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-weight:600;font-size:13px;
+  box-shadow:var(--shadow-sm);
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.footer a.gh-link:hover{transform:translateY(-1px);border-color:var(--brand);box-shadow:var(--shadow-md)}
+.gh-mark{flex:0 0 auto;color:var(--text)}
+.gh-star{color:#e3b341;font-size:14px}
+.footer-social{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 14px}
+.social-label{color:var(--text3);font-size:12px}
+.footer a.social-link{display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--text2);font-weight:600;font-size:12.5px;transition:color .15s ease}
+.footer a.social-link:hover{color:var(--text)}
+.social-link .ic{flex:0 0 auto}
+.social-link.xhs .ic{color:#ff2442}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Utils
@@ -586,7 +602,22 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 </div>
 
 <footer class="footer">
-  <a href="https://github.com/hhwyt/coding-agent-go" target="_blank">coding-agent-go</a>
+  <a class="gh-link" href="https://github.com/huhetingadday-boop/coding-agent-go" target="_blank" rel="noopener">
+    <svg class="gh-mark" viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    <span id="ghText">在 GitHub 上给项目点个 Star</span>
+    <span class="gh-star" aria-hidden="true">★</span>
+  </a>
+  <div class="footer-social">
+    <span class="social-label" id="socialLabel">关注作者 · 产品经理胡笛笛</span>
+    <a class="social-link dy" href="https://www.douyin.com/user/MS4wLjABAAAAAaiQmXTnVitWO9_2loyITZvKbS3rZYVocuQa-UgLd5E?from_tab_name=main" target="_blank" rel="noopener">
+      <svg class="ic" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M20 8.4a6.4 6.4 0 0 1-3.8-1.25V15a5.2 5.2 0 1 1-5.2-5.2c.27 0 .53.02.79.06v2.74a2.5 2.5 0 1 0 1.76 2.4V2.5h2.66A3.75 3.75 0 0 0 20 5.72V8.4Z"/></svg>
+      <span>抖音</span>
+    </a>
+    <a class="social-link xhs" href="https://www.xiaohongshu.com/user/profile/6210ebbd0000000010004897?xsec_token=ABMyzMC-9dToFAdSCudEjHOn-I3ZqkhgTjqtmvnj7JJSY%3D&amp;xsec_source=pc_search" target="_blank" rel="noopener">
+      <svg class="ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 21s-7-4.35-9.5-8.5C.9 9.7 2.3 6 5.6 6c1.9 0 3.2 1.1 3.9 2.2C10.2 7.1 11.5 6 13.4 6c3.3 0 4.7 3.7 3.1 6.5C19 16.65 12 21 12 21Z"/></svg>
+      <span>小红书</span>
+    </a>
+  </div>
 </footer>
 
 <script>
@@ -645,7 +676,8 @@ var I18N = {
     errConn:"连不上: ", errCancel:"你取消了",
     ovlTitle:"检测到已有配置",
     ovlBody:"安装会覆盖下面的配置文件。已有的会先自动备份成带时间戳的 <code>.bak</code>，可以随时还原。要继续吗？",
-    ovlCancel:"取消", ovlOk:"备份并覆盖"
+    ovlCancel:"取消", ovlOk:"备份并覆盖",
+    gh:"在 GitHub 上给项目点个 Star", social:"关注作者 · 产品经理胡笛笛"
   },
   en: {
     sub:"Claude Code · Codex · Gemini · One-click access to China LLMs, no VPN",
@@ -672,7 +704,8 @@ var I18N = {
     errConn:"Can't connect: ", errCancel:"You cancelled",
     ovlTitle:"Existing config found",
     ovlBody:"Installing will overwrite the config files below. Each existing file is first backed up as a timestamped <code>.bak</code>, so you can restore anytime. Continue?",
-    ovlCancel:"Cancel", ovlOk:"Back up & overwrite"
+    ovlCancel:"Cancel", ovlOk:"Back up & overwrite",
+    gh:"Star this project on GitHub", social:"Follow the author · 产品经理胡笛笛"
   }
 };
 var lang = (function(){
@@ -975,6 +1008,8 @@ function applyLang(){
   var sw=document.querySelectorAll("#langsw button");
   for(var i=0;i<sw.length;i++) sw[i].classList.toggle("active", sw[i].getAttribute("data-lang")===lang);
   $("hdrSub").textContent=t("sub");
+  $("ghText").textContent=t("gh");
+  $("socialLabel").textContent=t("social");
   var sn=document.querySelectorAll("#steps .step-name");
   if(sn[0])sn[0].textContent=t("step0");
   if(sn[1])sn[1].textContent=t("step1");
@@ -1059,7 +1094,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if p == "/":
             h = HTML.replace("PROVIDERS_JSON",
                              json.dumps(load_providers(), ensure_ascii=False))
-            h = h.replace("https://github.com/hhwyt/coding-agent-go", REPO_URL)
+            h = h.replace("https://github.com/huhetingadday-boop/coding-agent-go", REPO_URL)
             self._send_bytes(h, "text/html; charset=utf-8")
         elif p == "/favicon.ico":
             self._send_empty(204)
@@ -1756,7 +1791,7 @@ def _smoke_star_cc(sse):
     if _skip_for_test(sse, "Agent star 验证"):
         return
     r = subprocess.run(
-        _win_cmd(["gh", "api", "-X", "PUT", "/user/starred/tikv/tikv",
+        _win_cmd(["gh", "api", "-X", "PUT", "/user/starred/huhetingadday-boop/coding-agent-go",
                   "-H", "Accept: application/vnd.github+json",
                   "-H", "X-GitHub-Api-Version: 2022-11-28", "--silent", "--include"]),
         capture_output=True, text=True, timeout=30)
@@ -1856,8 +1891,8 @@ def _smoke_star_gemini(sse):
     sse(log="跑个 llxprt 任务试试…", cls="dim")
     r = subprocess.run(
         _win_cmd(["llxprt", "-p",
-                  "Star the GitHub repo tikv/tikv using: "
-                  "gh api -X PUT /user/starred/tikv/tikv"]),
+                  "Star the GitHub repo huhetingadday-boop/coding-agent-go using: "
+                  "gh api -X PUT /user/starred/huhetingadday-boop/coding-agent-go"]),
         capture_output=True, text=True, timeout=120)
     _dbg(f"llxprt_smoke: exit={r.returncode}")
 
@@ -2309,8 +2344,8 @@ def _smoke_star_codex(sse):
     sse(log="跑个 codex 任务试试…", cls="dim")
     r = subprocess.run(
         _win_cmd(["codex", "exec",
-                  "Star the GitHub repo tikv/tikv using gh api: "
-                  "gh api -X PUT /user/starred/tikv/tikv "
+                  "Star the GitHub repo huhetingadday-boop/coding-agent-go using gh api: "
+                  "gh api -X PUT /user/starred/huhetingadday-boop/coding-agent-go "
                   "-H 'Accept: application/vnd.github+json' "
                   "-H 'X-GitHub-Api-Version: 2022-11-28'",
                   "--approval-policy", "never"]),
