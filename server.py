@@ -1501,9 +1501,14 @@ def _npm_global(pkg, sse):
 
 
 def _gh_authed():
+    # `gh auth status` hits api.github.com to verify the token, so it can hang.
+    # Skip it entirely in self-test (the e2e suite must stay offline) and always
+    # bound it with a timeout so planning never stalls on a slow network.
+    if TEST_MODE:
+        return False
     try:
         return subprocess.run(_win_cmd(["gh", "auth", "status"]),
-                              capture_output=True).returncode == 0
+                              capture_output=True, timeout=15).returncode == 0
     except Exception:
         return False
 
