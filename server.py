@@ -13,6 +13,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 import urllib.error
@@ -398,7 +399,9 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
    ═══════════════════════════════════════════════════════════════════════════ */
 .prog-wrap{margin-bottom:24px}
 .prog-bar{height:6px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:12px}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--brand-dim),var(--brand));border-radius:4px;transition:width .35s ease;width:0%}
+.prog-fill{position:relative;height:100%;background:linear-gradient(90deg,var(--brand-dim),var(--brand));border-radius:4px;transition:width .35s ease;width:0%;overflow:hidden}
+.prog-fill.busy::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:progshine 1.15s linear infinite}
+@keyframes progshine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .prog-label{font-size:13.5px;color:var(--text2);display:flex;align-items:center;gap:9px;min-height:22px}
 .prog-label .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 2s infinite;flex-shrink:0}
 
@@ -898,7 +901,7 @@ function startInstall(){
   $("s2").classList.add("hidden");$("s3").classList.remove("hidden");
   setStep(3);
   $("s3t").textContent = t("s3title",{a:agentName()});
-  $("log").innerHTML = "";$("progFill").style.width = "0%";$("progFill").style.background="var(--brand)";
+  $("log").innerHTML = "";$("progFill").style.width = "0%";$("progFill").style.background="var(--brand)";$("progFill").classList.add("busy");
   $("progLabel").innerHTML='<span class="dot"></span>'+t("prep");
   $("actBar").innerHTML='<button class="btn btn-sec btn-sm" id="bCancel"></button>';
   $("bCancel").textContent=t("cancel"); $("bCancel").onclick=cancelInstall;
@@ -918,14 +921,24 @@ function addLog(msg,cls){
   $("log").appendChild(d);d.scrollIntoView({block:"nearest"});
 }
 
+var curStepLabel="";
 function setProg(pct,label){
   $("progFill").style.width = pct+"%";
-  $("progLabel").textContent = label;
+  curStepLabel = label||"";
+  $("progLabel").innerHTML='<span class="dot"></span>';
+  $("progLabel").appendChild(document.createTextNode(curStepLabel));
+}
+// Heartbeat from the server while a slow step runs: show a live elapsed timer
+// so the user can tell it's working, not hung.
+function setTick(secs){
+  $("progLabel").innerHTML='<span class="dot"></span>';
+  $("progLabel").appendChild(document.createTextNode(curStepLabel+" · "+secs+"s"));
 }
 
 function finishInstall(ok,msg,detail){
   if(finished) return;   // idempotent: error + cancel could both fire
   finished = true;
+  $("progFill").classList.remove("busy");
   if(ok){
     $("progFill").style.width="100%";
     $("progFill").style.background="var(--green)";
@@ -984,6 +997,7 @@ async function doInstall(){
         try{ev=JSON.parse(ln.slice(5).trim())}catch(e){continue}
         if(ev.log)addLog(ev.log,ev.cls||"");
         if(ev.pct!==undefined)setProg(ev.pct,ev.label||"");
+        if(ev.tick!==undefined)setTick(ev.tick);
         if(ev.done){gotDone=true;setProg(100,ev.label||t("doneLabel"));
           setTimeout(function(){finishInstall(true,ev.msg||"",ev.detail||"")},500)}
         if(ev.error){gotErr=true;
@@ -1178,6 +1192,11 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
     def sse(**kw):
         h._sse(kw)
 
+    # Expose the SSE callback to _run so slow subprocesses can stream a
+    # heartbeat. Only one install runs at a time (guarded by _in_progress).
+    global _ACTIVE_SSE
+    _ACTIVE_SSE = sse
+
     def err(msg):
         sse(log=f"✗ {msg}", cls="err")
         sse(error=msg)
@@ -1208,9 +1227,10 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
         pct = round(i / max(1, len(steps)) * 100)
         sse(pct=pct, label=label)
         sse(log=f"── {label} ──", cls="dim")
+        t_step = time.time()
         try:
             fn()
-            sse(log=f"  OK  {label}", cls="ok")
+            sse(log=f"  OK  {label} ({round(time.time() - t_step)}s)", cls="ok")
         except Exception as e:
             _dbg(f"step_failed: {label}\n{traceback.format_exc()}")
             if optional:
@@ -1252,6 +1272,10 @@ def _plan(product, pv, api_key, sse):
         steps.append(("装 Homebrew", lambda: _install_brew(sse), False))
     if product in ("claude", "codex", "gemini") and not _which("gh"):
         steps.append(("装 GitHub CLI", lambda: _install_gh(sse), True))
+    # Windows: let npm-generated CLI shims (claude.ps1 etc.) run in PowerShell,
+    # automatically — so the user never has to fix the ExecutionPolicy by hand.
+    if IS_WIN:
+        steps.append(("允许运行命令行", lambda: _win_allow_scripts(sse), True))
 
     if product == "claude":
         if not _has_our("claude", "@anthropic-ai/claude-code"):
@@ -1389,12 +1413,46 @@ def _win_cmd(cmd):
     return cmd
 
 
+# Set to the active SSE callback during an install (see run_install) so a slow
+# subprocess can stream a liveness heartbeat. None when no install is running.
+_ACTIVE_SSE = None
+
+
 def _run(cmd, **kw):
+    """Run a subprocess. While it runs, emit a `tick` heartbeat (elapsed
+    seconds) every 2s to the active SSE stream so the UI never looks frozen
+    during a slow step (gh / node / brew / npm). The subprocess runs in a
+    worker thread; only this (main) thread touches the SSE stream, so there's
+    no concurrent write. Same behavior on macOS, Linux, and Windows."""
     kw.setdefault("capture_output", True)
-    kw.setdefault("timeout", 300)
+    timeout = kw.pop("timeout", 300)
+    check = kw.pop("check", True)
     cmd = _win_cmd(cmd)
-    r = subprocess.run(cmd, **kw)
-    if kw.pop("check", True) and r.returncode != 0:
+    box = {}
+
+    def _worker():
+        try:
+            box["r"] = subprocess.run(cmd, timeout=timeout, **kw)
+        except BaseException as e:  # TimeoutExpired, OSError, …
+            box["e"] = e
+
+    th = threading.Thread(target=_worker, daemon=True)
+    t0 = time.time()
+    th.start()
+    sse = _ACTIVE_SSE
+    while True:
+        th.join(timeout=2.0)
+        if not th.is_alive():
+            break
+        if sse:
+            try:
+                sse(tick=round(time.time() - t0))
+            except Exception:
+                pass
+    if "e" in box:
+        raise box["e"]
+    r = box["r"]
+    if check and r.returncode != 0:
         # npm/winget emit UTF-8 even on a cp936 console; decode explicitly so
         # error text isn't mojibake in the SSE log.
         raw = r.stderr if isinstance(r.stderr, (bytes, bytearray)) else (r.stderr or "").encode()
@@ -1595,6 +1653,51 @@ def _install_brew(sse):
         raise Exception("Homebrew 安装失败 — https://brew.sh")
 
 
+def _win_allow_scripts(sse):
+    """npm installs CLIs as <name>.ps1 shims (e.g. claude.ps1). PowerShell's
+    default ExecutionPolicy refuses unsigned scripts, so typing `claude` fails
+    with 'running scripts is disabled on this system'. Set the per-user policy
+    to RemoteSigned (no admin/UAC needed) so the locally-generated shims run —
+    the user never has to run a command by hand. Idempotent and best-effort."""
+    if not IS_WIN:
+        return
+    if _skip_for_test(sse, "允许运行命令行"):
+        return
+    try:
+        cur = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "Get-ExecutionPolicy -Scope CurrentUser"],
+            capture_output=True, text=True, timeout=30).stdout.strip()
+    except Exception:
+        cur = ""
+    if cur in ("RemoteSigned", "Unrestricted", "Bypass"):
+        sse(log=f"  PowerShell 已允许运行命令行 ({cur})，跳过", cls="dim")
+        return
+    _run(["powershell", "-NoProfile", "-Command",
+          "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force"],
+         timeout=30)
+    sse(log="  已自动允许 PowerShell 运行已安装的命令行 (RemoteSigned)", cls="ok")
+
+
+def _gh_latest_version():
+    """Resolve the latest gh CLI version (e.g. '2.63.2') via the GitHub API,
+    with a China-friendly mirror fallback. Returns None if all sources fail —
+    the old code hard-coded gh_2.55.0 under .../latest/download/, which 404s as
+    soon as latest moves past that version."""
+    import urllib.request as _ur
+    for u in ("https://api.github.com/repos/cli/cli/releases/latest",
+              "https://gh-proxy.com/https://api.github.com/repos/cli/cli/releases/latest"):
+        try:
+            req = _ur.Request(u, headers={"User-Agent": "coding-agent-go"})
+            with _ur.urlopen(req, timeout=20) as r:
+                tag = json.loads(r.read().decode("utf-8")).get("tag_name", "")
+            ver = tag.lstrip("v").strip()
+            if ver:
+                return ver
+        except Exception:
+            continue
+    return None
+
+
 def _install_gh(sse):
     if _skip_for_test(sse, "装 GitHub CLI"):
         return
@@ -1622,16 +1725,37 @@ def _install_gh(sse):
         _refresh_windows_path()
         if _which("winget"):
             try:
+                # --source winget skips the msstore source, whose update step
+                # hangs on China networks — that's why the old call timed out
+                # after 300s before falling through to a 404'ing MSI URL.
                 _run(["winget", "install", "--id", "GitHub.cli", "--silent",
+                      "--source", "winget", "--disable-interactivity",
                       "--accept-package-agreements", "--accept-source-agreements"],
-                     timeout=300)
+                     timeout=180)
                 _refresh_windows_path()
                 return
             except Exception as e:
-                sse(log=f"  winget 失败，改下 MSI: {e}", cls="dim")
-        import urllib.request as _ur
+                sse(log=f"  winget 失败，改用 MSI 镜像: {e}", cls="dim")
+        # MSI fallback: resolve the real latest version, then download via a
+        # China-friendly GitHub mirror (direct github.com is slow/blocked in CN).
+        ver = _gh_latest_version()
+        if not ver:
+            raise Exception("拿不到 gh 最新版本（网络受限）")
+        base = (f"https://github.com/cli/cli/releases/download/"
+                f"v{ver}/gh_{ver}_windows_amd64.msi")
         msi = Path(tempfile.gettempdir()) / "gh-amd64.msi"
-        _download("https://github.com/cli/cli/releases/latest/download/gh_2.55.0_windows_amd64.msi", msi)
+        ok = False
+        for m in ("https://gh-proxy.com/" + base, "https://ghfast.top/" + base, base):
+            host = m.split("//", 1)[-1].split("/", 1)[0]
+            try:
+                sse(log=f"  下载 gh {ver} ({host}) …", cls="dim")
+                _download(m, msi, timeout=180)
+                ok = True
+                break
+            except Exception as e:
+                sse(log=f"    {host} 失败: {e}", cls="dim")
+        if not ok:
+            raise Exception("gh MSI 多个镜像都下载失败")
         rc = subprocess.run(["msiexec", "/i", str(msi), "/qn",
                             "REBOOT=ReallySuppress"], capture_output=True).returncode
         if rc not in (0, 3010):
@@ -1918,7 +2042,10 @@ def _install_node(sse):
             return
         if _which("winget"):
             try:
+                # --source winget skips the flaky msstore source that hangs on
+                # China networks (see _install_gh for the same fix).
                 _run(["winget", "install", "--id", "OpenJS.NodeJS.LTS", "--silent",
+                      "--source", "winget", "--disable-interactivity",
                       "--accept-package-agreements", "--accept-source-agreements"],
                      timeout=600)
                 _refresh_windows_path()
