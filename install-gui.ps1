@@ -72,6 +72,9 @@ Write-Host 'Downloading server.py / providers.json ...'
 Invoke-WebRequest "$Cdn/server.py"      -OutFile (Join-Path $dir 'server.py')      -UseBasicParsing
 Invoke-WebRequest "$Cdn/providers.json" -OutFile (Join-Path $dir 'providers.json') -UseBasicParsing
 
-Write-Host "Starting coding-agent-go GUI on http://localhost:$Port ..."
-Start-Process "http://localhost:$Port"
+Write-Host "Starting coding-agent-go GUI on http://localhost:$Port (browser opens automatically) ..."
+# Don't open the browser here: the server is not listening yet, so the tab would
+# hit "can't connect" and need a manual refresh. server.py opens the browser
+# itself right after it binds the socket, so the page is ready the moment the
+# tab appears — one clean tab, no refresh.
 & $py (Join-Path $dir 'server.py') --port $Port

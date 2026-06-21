@@ -52,7 +52,8 @@ rem downloaded (the PowerShell one-liner), fetch the app into TEMP first.
 set "APPDIR=%~dp0"
 if not exist "%APPDIR%server.py" call :fetch_app
 cd /d "%APPDIR%"
-start "" "http://localhost:%PORT%"
+rem Don't pre-open the browser here (server isn't up yet). server.py opens it
+rem itself right after binding the socket, so the page is ready when the tab appears.
 "%PY%" "%APPDIR%server.py" --port %PORT%
 goto :end
 
