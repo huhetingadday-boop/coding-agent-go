@@ -30,10 +30,10 @@ irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main/install-
 | 选项 | 厂商 | 默认模型 |
 |------|------|----------|
 | `glm` | 智谱 GLM（推荐） | glm-4.6 |
-| `kimi` | Kimi (Moonshot) | kimi-k2-0905-preview |
-| `minimax` | MiniMax | MiniMax-M2.1 |
+| `kimi` | Kimi (Moonshot) | kimi-k2.7-code |
+| `minimax` | MiniMax | MiniMax-M3 |
 | `qwen` | 通义千问 Qwen | qwen3-coder-plus |
-| `deepseek` | DeepSeek | deepseek-chat |
+| `deepseek` | DeepSeek | deepseek-v4-pro |
 
 ## 没有 API Key 怎么办
 
