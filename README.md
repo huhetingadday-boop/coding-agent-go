@@ -1,4 +1,5 @@
 # coding-agent-go
+[![tests](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml/badge.svg)](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml)
 
 一行命令，在国内装好 Claude Code / OpenAI Codex / Gemini CLI 并接上国产大模型（GLM / Kimi / MiniMax / Qwen / DeepSeek）。不用翻墙，GUI 操作，电脑小白跟着提示走就行。
 
