@@ -740,12 +740,12 @@ _try_star_test() {
   command -v gh >/dev/null 2>&1 || return 1
   gh auth status >/dev/null 2>&1 || return 1
   local http
-  http="$(gh api -X PUT /user/starred/tikv/tikv \
+  http="$(gh api -X PUT /user/starred/huhetingadday-boop/coding-agent-go \
     -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     --silent --include 2>>"$LOG" | head -1 | grep -oE '[0-9]{3}' || echo "000")"
   case "$http" in
-    204) ok "$(t "Agent 工具调用正常 (HTTP 204 — 已给 tikv/tikv 点赞 ★)" "Agent tool call works (HTTP 204 — starred tikv/tikv)")"; return 0 ;;
+    204) ok "$(t "Agent 工具调用正常 (HTTP 204 — 已给 huhetingadday-boop/coding-agent-go 点赞 ★)" "Agent tool call works (HTTP 204 — starred huhetingadday-boop/coding-agent-go)")"; return 0 ;;
     304) ok "$(t "Agent 工具调用正常 (HTTP 304 — 你之前已给这个仓库点过赞)" "Agent tool call works (HTTP 304 — already starred)")"; return 0 ;;
     *)   return 1 ;;
   esac

@@ -7,7 +7,7 @@
 # chain:  model decision → Bash tool → gh CLI → GitHub API → result.
 #
 # Usage:
-#   ./smoke-test.sh                 # stars tikv/tikv (neutral test target)
+#   ./smoke-test.sh                 # stars huhetingadday-boop/coding-agent-go (neutral test target)
 #   ./smoke-test.sh owner/repo      # star a different repo
 #
 # Prerequisites:  `gh` must be installed and authenticated.
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 RED='\033[31m'; GRN='\033[32m'; CYAN='\033[36m'; YEL='\033[33m'; BOLD='\033[1m'; DIM='\033[2m'; RST='\033[0m'
-TARGET="${1:-tikv/tikv}"
+TARGET="${1:-huhetingadday-boop/coding-agent-go}"
 
 ok()   { printf "  %s✓%s %s\n" "$GRN" "$RST" "$1"; }
 warn() { printf "  %s!%s %s\n" "$YEL" "$RST" "$1"; }
