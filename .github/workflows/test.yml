@@ -29,6 +29,10 @@ jobs:
         run: python tests/test_e2e.py
       - name: windows code-path checks
         run: python tests/test_windows_paths.py
+      - name: install-reuse unit tests
+        run: python tests/test_install_reuse.py
+      - name: thinking-mode unit tests
+        run: python tests/test_verify_thinking.py
       - name: compile check
         run: python -c "import py_compile; py_compile.compile('server.py', doraise=True)"
 
