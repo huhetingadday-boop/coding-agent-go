@@ -1,0 +1,80 @@
+{
+  "providers": [
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "label_en": "DeepSeek",
+      "base_url": "https://api.deepseek.com/anthropic",
+      "chat_url": "https://api.deepseek.com/v1",
+      "model": "deepseek-v4-pro",
+      "fast_model": "deepseek-v4-flash",
+      "context_window": 131072,
+      "key_url": "https://platform.deepseek.com/api_keys",
+      "doc_url": "https://api-docs.deepseek.com/zh-cn/",
+      "icon": "🐋",
+      "description_zh": "推理强",
+      "description_en": "strong reasoning"
+    },
+    {
+      "id": "kimi",
+      "label": "Kimi",
+      "label_en": "Kimi (Moonshot)",
+      "base_url": "https://api.moonshot.cn/anthropic",
+      "chat_url": "https://api.moonshot.cn/v1",
+      "model": "kimi-k2.7-code",
+      "fast_model": "kimi-k2.7-code-highspeed",
+      "context_window": 256000,
+      "thinking_required": true,
+      "key_url": "https://platform.kimi.com/console/api-keys",
+      "doc_url": "https://platform.kimi.com/blog/posts/kimi-api-quick-start-guide",
+      "icon": "🌙",
+      "description_zh": "上下文长",
+      "description_en": "long context"
+    },
+    {
+      "id": "glm",
+      "label": "智谱 GLM",
+      "label_en": "Zhipu GLM",
+      "base_url": "https://open.bigmodel.cn/api/anthropic",
+      "chat_url": "https://open.bigmodel.cn/api/paas/v4",
+      "model": "glm-4.6",
+      "fast_model": "glm-4.5-air",
+      "context_window": 200000,
+      "key_url": "https://www.bigmodel.cn/usercenter/proj-mgmt/apikeys",
+      "doc_url": "https://docs.bigmodel.cn/cn/guide/develop/claude/introduction#获取-api-key",
+      "icon": "🧠",
+      "description_zh": "性价比高",
+      "description_en": "great value"
+    },
+    {
+      "id": "qwen",
+      "label": "通义千问 Qwen",
+      "label_en": "Qwen",
+      "base_url": "https://dashscope.aliyuncs.com/apps/anthropic",
+      "chat_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "model": "qwen3-coder-plus",
+      "fast_model": "qwen3-coder-plus",
+      "context_window": 1048576,
+      "key_url": "https://bailian.console.aliyun.com/?tab=model#/api-key",
+      "doc_url": "https://help.aliyun.com/zh/model-studio/claude-code",
+      "icon": "☁️",
+      "description_zh": "阿里",
+      "description_en": "Alibaba"
+    },
+    {
+      "id": "minimax",
+      "label": "MiniMax",
+      "label_en": "MiniMax",
+      "base_url": "https://api.minimaxi.com/anthropic",
+      "chat_url": "https://api.minimaxi.com/v1",
+      "model": "MiniMax-M3",
+      "fast_model": "MiniMax-M3",
+      "context_window": 245760,
+      "key_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+      "doc_url": "https://platform.minimaxi.com/docs/token-plan/claude-code",
+      "icon": "⚡",
+      "description_zh": "便宜",
+      "description_en": "cheap"
+    }
+  ]
+}

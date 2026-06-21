@@ -1,0 +1,19 @@
+# logs and temp files produced by the installer
+*.log
+yiclaude-install.*
+yiclaude-verify.*
+
+# editor / OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# OMX/OMC runtime state (not part of the project)
+.omx/
+.omc/
+
+# backups the installer may create
+*.bak
+*.bak.*
+__pycache__/

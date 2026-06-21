@@ -1,0 +1,46 @@
+name: tests
+
+# Real cross-OS verification. The e2e suite runs in self-test mode
+# (CAG_SELFTEST=1, redirected HOME) so it exercises routing, HTML, SSE,
+# config-file writing, and the Windows/macOS/Linux code paths WITHOUT doing
+# real installs or network calls. windows-latest is a genuine Windows host —
+# this is how we verify the schtasks XML, path handling, and config writes on
+# Windows without a local VM (Docker can't run Windows containers on macOS).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: e2e (self-test mode, no real installs)
+        run: python tests/test_e2e.py
+      - name: windows code-path checks
+        run: python tests/test_windows_paths.py
+      - name: compile check
+        run: python -c "import py_compile; py_compile.compile('server.py', doraise=True)"
+
+  # Genuine install path on a real x64 Windows host: actually `npm i -g` the
+  # Claude Code CLI (no API key needed) and verify `claude` resolves in a fresh
+  # shell. This is the make-or-break check that self-test mode cannot cover.
+  real-install-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: real Claude Code install + PATH check
+        run: python tests/test_real_install_win.py
