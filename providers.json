@@ -33,6 +33,7 @@
     },
     {
       "id": "glm",
+      "recommended": true,
       "label": "智谱 GLM",
       "label_en": "Zhipu GLM",
       "base_url": "https://open.bigmodel.cn/api/anthropic",

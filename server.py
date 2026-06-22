@@ -50,6 +50,7 @@ PROXY_PORT = 17878
 _installing = False
 _install_lock = __import__("threading").Lock()
 _autostart_ok = False  # set by _win_autostart/_launchd/_systemd_user per run
+_cancel_evt = __import__("threading").Event()  # set by /api/cancel; checked between steps
 
 
 def load_providers():
@@ -381,7 +382,7 @@ input[type=password]:focus,input[type=text]:focus{
 }
 input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg)!important}
 .input-hint{font-size:12.5px;color:var(--text3);margin-top:10px}
-.key-privacy{font-size:12px;color:var(--text3);margin-top:12px;line-height:1.5;opacity:.85}
+.key-privacy{font-size:12px;color:var(--text2);margin-top:14px;line-height:1.5;padding:9px 12px;background:var(--green-bg);border-radius:var(--radius-xs)}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Key guide
@@ -571,11 +572,11 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
         <input type="password" id="key" placeholder="粘贴 API Key…" autocomplete="off">
         <div class="input-hint" id="keyHint"></div>
         <div class="key-privacy" id="keyPrivacy">🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。</div>
-        <div class="btns">
-          <button class="btn btn-sec btn-sm" id="b2back">← 返回</button>
-          <button class="btn btn-pri btn-sm" id="b2" disabled>开始</button>
-        </div>
       </div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-sec btn-sm" id="b2back">← 返回</button>
+      <button class="btn btn-pri btn-sm" id="b2" disabled>开始</button>
     </div>
   </div>
 </section>
@@ -658,7 +659,7 @@ var ICON_GEMINI =
   '<path d="M20 2C21 13 27 19 38 20C27 21 21 27 20 38C19 27 13 21 2 20C13 19 19 13 20 2Z" fill="url(#gg)"/>'+
   '</svg>';
 var P = PROVIDERS_JSON;
-var agent = null, model = null, key = "", cancelFlag = false, finished = false;
+var agent = null, model = null, key = "", finished = false;
 
 // ── i18n ────────────────────────────────────────────────────────────
 var I18N = {
@@ -677,7 +678,8 @@ var I18N = {
     keyStep3:"点击「创建 API Key」并复制", keyStep4:"粘贴到右侧输入框",
     keyDoc:"官方图文教程",
     keyPrivacy:"🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。",
-    nextTitle:"装好了，怎么用？", nextTry:"打开终端，输入下面的命令，再试一句：帮我写一个能跑的 Python 小脚本",
+    doneTitle:"装好了 🎉",
+    nextTitle:"装好了，怎么用？", nextTry:"不知道终端在哪？Mac 在「启动台」搜 Terminal，Windows 搜 PowerShell；打开后输入上面这行命令回车，再随便说一句试试，比如：帮我写一个能跑的 Python 小脚本",
     costNote:"💡 按量计费，先充几块钱能用很久；用量在所选厂商的官网后台可查。",
     keyBad:"✗ Key 里混了中文或特殊字符，重新复制一下", keyOk:"✓ 格式通过",
     s3title:"正在装 {a}…", prep:"准备…", doneLabel:"完事",
@@ -709,8 +711,9 @@ var I18N = {
     keyStep3:"Click “Create API Key” and copy it", keyStep4:"Paste it into the box on the right",
     keyDoc:"Official step-by-step guide",
     keyPrivacy:"🔒 Your key only goes to the selected model's official API and your own computer — never to the author or any third party.",
-    nextTitle:"Installed — how do I use it?", nextTry:"Open a terminal, run the command below, then try a prompt: write me a small Python script that runs",
-    costNote:"💡 Pay-as-you-go — a few yuan lasts a long time; check usage on the selected vendor's dashboard.",
+    doneTitle:"All set 🎉",
+    nextTitle:"Installed — how do I use it?", nextTry:"Not sure where the terminal is? Mac: search ‘Terminal’ in Launchpad; Windows: search ‘PowerShell’. Open it, run the command above, then just say something, e.g.: write me a small Python script that runs",
+    costNote:"💡 Pay-as-you-go — topping up a small amount lasts a long time; check usage on the vendor's website.",
     keyBad:"✗ The key has Chinese or special characters — copy it again", keyOk:"✓ Format looks good",
     s3title:"Installing {a}…", prep:"Preparing…", doneLabel:"Done",
     okStatus:"Installed", doneBanner:"══════ Done ══════",
@@ -819,7 +822,7 @@ function renderProviders(){
     var h = '<div class="pv-icon">'+(p.icon||"🤖")+'</div>'+
       '<div class="pv-name">'+label+'</div>'+
       '<div class="pv-desc">'+desc+'</div>';
-    if(i===0)h+='<div class="pv-badge">'+t("recommend")+'</div>';
+    if(p.recommended)h+='<div class="pv-badge">'+t("recommend")+'</div>';
     c.innerHTML = h;
     if(model && model.id===p.id){ c.classList.add("selected"); c.setAttribute("aria-pressed","true"); }
     c.onclick=function(){pickProvider(p,c)};
@@ -861,6 +864,7 @@ $("b1").onclick = function(){
   $("b2").disabled = true;
   $("s2").classList.remove("hidden");
   setStep(2);
+  $("key").focus();
 };
 
 $("b1back").onclick = function(){
@@ -895,6 +899,10 @@ $("key").oninput = function(){
   }
   $("b2").disabled = false;
 };
+// Enter submits the key — the universal expectation for a single text field.
+$("key").onkeydown = function(e){
+  if(e.key==="Enter" && !$("b2").disabled){ e.preventDefault(); $("b2").click(); }
+};
 
 $("b2back").onclick = function(){
   $("s2").classList.add("hidden");$("s1").classList.remove("hidden");
@@ -921,20 +929,26 @@ function startInstall(){
   $("progLabel").innerHTML='<span class="dot"></span>'+t("prep");
   $("actBar").innerHTML='<button class="btn btn-sec btn-sm" id="bCancel"></button>';
   $("bCancel").textContent=t("cancel"); $("bCancel").onclick=cancelInstall;
-  cancelFlag = false; finished = false; doInstall();
+  finished = false; doInstall();
 }
 
 function showConfirm(files){
   var ul=$("ovlList"); ul.innerHTML="";
   files.forEach(function(f){var li=document.createElement("li");li.textContent=f;ul.appendChild(li)});
   $("ovl").classList.remove("hidden");
+  $("ovlCancel").focus();   // land focus on the safe (non-destructive) choice
 }
-$("ovlCancel").onclick=function(){ $("ovl").classList.add("hidden") };
+function hideOvl(){ $("ovl").classList.add("hidden"); $("b2").focus(); }
+$("ovlCancel").onclick=function(){ hideOvl() };
 $("ovlOk").onclick=function(){ $("ovl").classList.add("hidden"); startInstall() };
+// Esc closes the overwrite dialog (cancels the destructive default).
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape" && !$("ovl").classList.contains("hidden")) hideOvl();
+});
 
 function addLog(msg,cls){
   var d = E("div","log-line"+(cls?" "+cls:""),msg);
-  $("log").appendChild(d);d.scrollIntoView({block:"nearest"});
+  var lg=$("log");lg.appendChild(d);lg.scrollTop=lg.scrollHeight;
 }
 
 var curStepLabel="";
@@ -945,10 +959,15 @@ function setProg(pct,label){
   $("progLabel").appendChild(document.createTextNode(curStepLabel));
 }
 // Heartbeat from the server while a slow step runs: show a live elapsed timer
-// so the user can tell it's working, not hung.
+// so the user can tell it's working, not hung. Tabular-nums + fixed width keeps
+// the label from jittering as the digit count changes (9s -> 10s).
 function setTick(secs){
   $("progLabel").innerHTML='<span class="dot"></span>';
-  $("progLabel").appendChild(document.createTextNode(curStepLabel+" · "+secs+"s"));
+  $("progLabel").appendChild(document.createTextNode(curStepLabel+" · "));
+  var t=document.createElement("span");
+  t.style.cssText="font-variant-numeric:tabular-nums;display:inline-block;min-width:3.2ch;text-align:right";
+  t.textContent=secs+"s";
+  $("progLabel").appendChild(t);
 }
 
 function finishInstall(ok,msg,detail){
@@ -958,6 +977,7 @@ function finishInstall(ok,msg,detail){
   if(ok){
     $("progFill").style.width="100%";
     $("progFill").style.background="var(--green)";
+    $("s3t").textContent=t("doneTitle");   // heading was "正在装…"; flip it to a done state
     $("progLabel").innerHTML='<span style="color:var(--green);font-weight:700;font-size:15px">'+t("okStatus")+'</span>';
     addLog("",""); addLog(t("doneBanner"),"ok");
     addLog(t("nextTitle"),"ok");
@@ -1030,10 +1050,9 @@ async function doInstall(){
 }
 
 function cancelInstall(){
-  cancelFlag=true; fetch("/api/cancel",{method:"POST"});
+  fetch("/api/cancel",{method:"POST"});
   finishInstall(false,t("errCancel"));
 }
-$("bCancel").onclick = cancelInstall;
 
 // ── language switcher + initial render ──────────────────────────────
 function applyLang(){
@@ -1186,6 +1205,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 body = json.loads(self.rfile.read(length)) if length else {}
             except Exception:
                 body = {}
+            _cancel_evt.set()
             _dbg("cancel requested")
             self._send_json({"ok": True})
         else:
@@ -1234,6 +1254,7 @@ def _L(label, lang):
 def run_install(h, product, provider_id, api_key, confirm_overwrite=False, lang="zh"):
     global _autostart_ok
     _autostart_ok = False  # reset; set True only if autostart actually succeeds
+    _cancel_evt.clear()    # fresh run; a stale cancel must not abort it
     if product not in ("claude", "codex", "gemini"):
         h._sse({"error": f"不认识的产品: {product}", "log": f"✗ 不认识的产品: {product}", "cls": "err"})
         return
@@ -1280,6 +1301,15 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False, lang=
 
     w = _WRAP[lang]
     for i, step in enumerate(steps):
+        # User hit Cancel: stop before starting the next step so no further
+        # brew/npm/node work runs. The in-flight step finishes in its daemon
+        # thread; we just don't start anything new. The client already showed
+        # the cancelled state, so this is a quiet, clean stop.
+        if _cancel_evt.is_set():
+            _dbg("install cancelled by user")
+            sse(log="  ⓘ 已取消，没有继续往下装" if lang != "en"
+                else "  ⓘ Cancelled — nothing more was installed", cls="dim")
+            return
         # _plan returns (label, fn) for required and (label, fn, True) for optional.
         label, fn = step[0], step[1]
         disp = _L(label, lang)
@@ -2012,7 +2042,7 @@ def _smoke_star_cc(sse):
     if "204" in code:
         sse(log="  ★ star 已发送", cls="ok")
     elif "304" in code:
-        sse(log="  ★ 已点过赞", cls="ok")
+        sse(log="  ★ 已经 Star 过了", cls="ok")
     else:
         sse(log=f"  star 跳过 (HTTP {code.strip()})", cls="dim")
 
