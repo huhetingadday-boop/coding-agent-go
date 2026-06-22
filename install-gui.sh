@@ -83,7 +83,7 @@ SCRIPTPATH="$(cd "$(dirname "$0")" 2>/dev/null && pwd)" || SCRIPTPATH=""
 if [ -n "$SCRIPTPATH" ] && [ -f "$SCRIPTPATH/server.py" ]; then
   SERVER="$SCRIPTPATH/server.py"
 else
-  CDN="https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main"
+  CDN="https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest"
   DEST="$(mktemp -d 2>/dev/null || echo "/tmp/coding-agent-go.$$")"
   mkdir -p "$DEST"
   echo "下载 server.py / providers.json …"

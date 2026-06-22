@@ -116,10 +116,13 @@ class E2ETest(unittest.TestCase):
         finally:
             conn.close()
 
-    def _install(self, product, provider_id, api_key, confirm=True):
+    def _install(self, product, provider_id, api_key, confirm=True, lang=None):
         """POST /api/install and read the full SSE stream. Returns events."""
-        data = json.dumps({"product": product, "provider_id": provider_id,
-                           "api_key": api_key, "confirm_overwrite": confirm}).encode()
+        payload = {"product": product, "provider_id": provider_id,
+                   "api_key": api_key, "confirm_overwrite": confirm}
+        if lang is not None:
+            payload["lang"] = lang
+        data = json.dumps(payload).encode()
         conn = http.client.HTTPConnection("127.0.0.1", SERVER_PORT, timeout=20)
         try:
             conn.request("POST", "/api/install", body=data,
@@ -293,6 +296,20 @@ class E2ETest(unittest.TestCase):
         for p in (self.home / ".profile", self.home / ".zshrc", self.home / ".bashrc"):
             if p.exists():
                 self.assertNotIn("MIMO2CODEX", p.read_text(encoding="utf-8"), "No shell export should be needed")
+
+    # ── install-log i18n ────────────────────────────────────────────────
+    def test_25_english_lang_translates_step_labels(self):
+        """lang=en must translate the high-level step labels (the progress
+        'spine'). Chinese is the default; English mode should not show the
+        Chinese label for a core step like 'write config'."""
+        _, _, ev_en = self._install("claude", "glm", "test-key-12345678", lang="en")
+        labels_en = [e.get("label", "") for e in ev_en if "label" in e]
+        self.assertIn("Write config", labels_en, f"en labels missing English: {labels_en}")
+        self.assertNotIn("写配置", labels_en, "en mode must not show the Chinese label")
+        # zh stays the default and untranslated.
+        _, _, ev_zh = self._install("claude", "glm", "test-key-12345678", lang="zh")
+        labels_zh = [e.get("label", "") for e in ev_zh if "label" in e]
+        self.assertIn("写配置", labels_zh, f"zh labels should stay Chinese: {labels_zh}")
 
     # ── install: Gemini CLI (llxprt-code) ───────────────────────────────
     def test_30_gemini_install_completes(self):

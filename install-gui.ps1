@@ -2,7 +2,7 @@
   coding-agent-go GUI launcher for Windows PowerShell.
 
   Run it the simple "curl | sh" way (downloads and runs in one shot):
-    irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main/install-gui.ps1 | iex
+    irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex
 
   It finds Python (installs it per-user if missing, no admin needed), fetches
   server.py + providers.json from the CDN, then starts the local install UI at
@@ -11,7 +11,7 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Port = 17860
-$Cdn  = 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main'
+$Cdn  = 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'
 
 function Find-Py {
   foreach ($c in @('py', 'python3', 'python')) {

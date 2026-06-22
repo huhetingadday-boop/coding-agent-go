@@ -26,7 +26,12 @@ from pathlib import Path
 
 PORT = 17860
 REPO_URL = "https://github.com/huhetingadday-boop/coding-agent-go"
-BASE_DIR = Path(__file__).resolve().parent
+# When frozen by PyInstaller (the double-click .exe/.dmg build) the bundled
+# providers.json is unpacked to sys._MEIPASS, not next to __file__.
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 PROVIDERS_PATH = BASE_DIR / "providers.json"
 
 SYSTEM = platform.system()
@@ -376,6 +381,7 @@ input[type=password]:focus,input[type=text]:focus{
 }
 input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg)!important}
 .input-hint{font-size:12.5px;color:var(--text3);margin-top:10px}
+.key-privacy{font-size:12px;color:var(--text3);margin-top:12px;line-height:1.5;opacity:.85}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Key guide
@@ -564,6 +570,7 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
         <label for="key" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">API Key</label>
         <input type="password" id="key" placeholder="粘贴 API Key…" autocomplete="off">
         <div class="input-hint" id="keyHint"></div>
+        <div class="key-privacy" id="keyPrivacy">🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。</div>
         <div class="btns">
           <button class="btn btn-sec btn-sm" id="b2back">← 返回</button>
           <button class="btn btn-pri btn-sm" id="b2" disabled>开始</button>
@@ -669,6 +676,9 @@ var I18N = {
     keyStep1:"打开 {m} API Key 管理页", keyStep2:"注册或登录账号",
     keyStep3:"点击「创建 API Key」并复制", keyStep4:"粘贴到右侧输入框",
     keyDoc:"官方图文教程",
+    keyPrivacy:"🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。",
+    nextTitle:"装好了，怎么用？", nextTry:"打开终端，输入下面的命令，再试一句：帮我写一个能跑的 Python 小脚本",
+    costNote:"💡 按量计费，先充几块钱能用很久；用量在所选厂商的官网后台可查。",
     keyBad:"✗ Key 里混了中文或特殊字符，重新复制一下", keyOk:"✓ 格式通过",
     s3title:"正在装 {a}…", prep:"准备…", doneLabel:"完事",
     okStatus:"安装好了", doneBanner:"══════ 安装完成 ══════",
@@ -698,6 +708,9 @@ var I18N = {
     keyStep1:"Open the {m} API key page", keyStep2:"Sign up or log in",
     keyStep3:"Click “Create API Key” and copy it", keyStep4:"Paste it into the box on the right",
     keyDoc:"Official step-by-step guide",
+    keyPrivacy:"🔒 Your key only goes to the selected model's official API and your own computer — never to the author or any third party.",
+    nextTitle:"Installed — how do I use it?", nextTry:"Open a terminal, run the command below, then try a prompt: write me a small Python script that runs",
+    costNote:"💡 Pay-as-you-go — a few yuan lasts a long time; check usage on the selected vendor's dashboard.",
     keyBad:"✗ The key has Chinese or special characters — copy it again", keyOk:"✓ Format looks good",
     s3title:"Installing {a}…", prep:"Preparing…", doneLabel:"Done",
     okStatus:"Installed", doneBanner:"══════ Done ══════",
@@ -947,9 +960,12 @@ function finishInstall(ok,msg,detail){
     $("progFill").style.background="var(--green)";
     $("progLabel").innerHTML='<span style="color:var(--green);font-weight:700;font-size:15px">'+t("okStatus")+'</span>';
     addLog("",""); addLog(t("doneBanner"),"ok");
+    addLog(t("nextTitle"),"ok");
     var cmd=agent==="claude"?"claude":(agent==="codex"?"codex":"llxprt");
     addLog(t("runTerm")+cmd);
+    addLog(t("nextTry"),"dim");
     if(detail)addLog(detail,"dim");
+    addLog(t("costNote"),"dim");
     addLog("═══════════════════════","dim");
     $("actBar").innerHTML="";
     var home=E("button","btn btn-pri btn-sm",t("home"));
@@ -976,7 +992,7 @@ function finishInstall(ok,msg,detail){
 async function doInstall(){
   var gotDone=false,gotErr=false;
   try{
-    var payload=JSON.stringify({product:agent,provider_id:model.id,api_key:key,confirm_overwrite:true});
+    var payload=JSON.stringify({product:agent,provider_id:model.id,api_key:key,confirm_overwrite:true,lang:lang});
     var r=null,lastErr=null;
     for(var attempt=0;attempt<2;attempt++){
       try{
@@ -1038,6 +1054,7 @@ function applyLang(){
   $("s2h").textContent=t("s2title"); $("s2sub").textContent=t("s2sub");
   $("b2back").textContent=t("back"); $("b2").textContent=t("start");
   $("key").placeholder=t("keyPlaceholder");
+  $("keyPrivacy").textContent=t("keyPrivacy");
   $("ovlTitle").textContent=t("ovlTitle"); $("ovlBody").innerHTML=t("ovlBody");
   $("ovlCancel").textContent=t("ovlCancel"); $("ovlOk").textContent=t("ovlOk");
   if(agent){ $("s1t").textContent=s1Title(); $("s1d").textContent=s1Desc(); }
@@ -1154,7 +1171,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                             body.get("product", "claude"),
                             body.get("provider_id", "glm"),
                             body.get("api_key", ""),
-                            confirm_overwrite=bool(body.get("confirm_overwrite")))
+                            confirm_overwrite=bool(body.get("confirm_overwrite")),
+                            lang=("en" if body.get("lang") == "en" else "zh"))
             except Exception as e:
                 _dbg(f"top_level_exception: {traceback.format_exc()}")
                 self._sse({"error": str(e), "log": f"✗ 内部错误: {e}", "cls": "err"})
@@ -1177,7 +1195,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Install orchestration
 # ═══════════════════════════════════════════════════════════════════════════════
-def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
+# English labels for the install "spine" — the step name shown on the progress
+# bar and as the `── … ──` section header. Detailed per-command logs stay in
+# Chinese (the primary audience); this keeps the high-level narrative readable
+# in English mode. Any label missing here falls back to its Chinese text.
+_STEP_EN = {
+    "装 Homebrew": "Install Homebrew",
+    "装 GitHub CLI": "Install GitHub CLI",
+    "允许运行命令行": "Allow scripts to run",
+    "装 Claude Code": "Install Claude Code",
+    "写配置": "Write config",
+    "试试能不能通": "Test the connection",
+    "跑个任务试试": "Run a quick task",
+    "装 Node.js": "Install Node.js",
+    "装 Node.js (22+)": "Install Node.js (22+)",
+    "装 llxprt-code": "Install llxprt-code",
+    "写 llxprt 配置": "Write llxprt config",
+    "装 Codex CLI": "Install Codex CLI",
+    "装代理 (mimo2codex)": "Install proxy (mimo2codex)",
+    "写代理配置": "Write proxy config",
+    "写 Codex 配置": "Write Codex config",
+    "起代理": "Start proxy",
+    "搞定了": "Done",
+}
+# Generic wrapper phrases around each step, keyed by lang.
+_WRAP = {
+    "zh": {"opt": "（可选）", "skip": "（可选）没成功也不影响使用，已跳过",
+           "fail": "失败", "newterm": "请打开一个新的终端窗口再输入命令。"},
+    "en": {"opt": " (optional)", "skip": " (optional) — skipped, not needed",
+           "fail": "failed", "newterm": "Open a new terminal window before running the command. "},
+}
+
+
+def _L(label, lang):
+    return _STEP_EN.get(label, label) if lang == "en" else label
+
+
+def run_install(h, product, provider_id, api_key, confirm_overwrite=False, lang="zh"):
     global _autostart_ok
     _autostart_ok = False  # reset; set True only if autostart actually succeeds
     if product not in ("claude", "codex", "gemini"):
@@ -1224,17 +1278,19 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
     steps = _plan(product, pv, api_key, sse)
     _dbg(f"plan: {len(steps)} steps: {[s[0] for s in steps]}")
 
+    w = _WRAP[lang]
     for i, step in enumerate(steps):
         # _plan returns (label, fn) for required and (label, fn, True) for optional.
         label, fn = step[0], step[1]
+        disp = _L(label, lang)
         optional = bool(step[2]) if len(step) > 2 else False
         pct = round(i / max(1, len(steps)) * 100)
-        sse(pct=pct, label=label)
-        sse(log=f"── {label}{'（可选）' if optional else ''} ──", cls="dim")
+        sse(pct=pct, label=disp)
+        sse(log=f"── {disp}{w['opt'] if optional else ''} ──", cls="dim")
         t_step = time.time()
         try:
             fn()
-            sse(log=f"  OK  {label} ({round(time.time() - t_step)}s)", cls="ok")
+            sse(log=f"  OK  {disp} ({round(time.time() - t_step)}s)", cls="ok")
         except Exception as e:
             _dbg(f"step_failed: {label}\n{traceback.format_exc()}")
             if optional:
@@ -1243,26 +1299,34 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False):
                 # line — not a coral warning — and keep the raw error in the debug
                 # log only, so a failed bonus step never looks like the whole
                 # install failed.
-                sse(log=f"  ⓘ {label}（可选）没成功也不影响使用，已跳过", cls="dim")
+                sse(log=f"  ⓘ {disp}{w['skip']}", cls="dim")
                 continue
-            err(f"{label} 失败: {e}")
+            err(f"{disp} {w['fail']}: {e}")
             return
 
     # On Windows the new PATH only reaches a freshly opened shell, so tell the
     # user to open a new terminal window.
-    fresh = "请打开一个新的终端窗口再输入命令。" if IS_WIN else ""
+    fresh = w["newterm"] if IS_WIN else ""
     detail = ""
     if product == "codex":
-        boot = ("重启电脑后也会自动起来。" if _autostart_ok
-                else "注意：开机自启没配上，重启后请重新运行本工具启动代理。")
-        detail = (f"{fresh}代理已在后台运行，{boot}"
-                  f"管理界面: http://127.0.0.1:{PROXY_PORT}/admin/")
+        if lang == "en":
+            boot = ("It also starts automatically after a reboot." if _autostart_ok
+                    else "Note: auto-start on boot was not set up; re-run this tool after a reboot to start the proxy.")
+            detail = (f"{fresh}The proxy is running in the background. {boot} "
+                      f"Admin page: http://127.0.0.1:{PROXY_PORT}/admin/")
+        else:
+            boot = ("重启电脑后也会自动起来。" if _autostart_ok
+                    else "注意：开机自启没配上，重启后请重新运行本工具启动代理。")
+            detail = (f"{fresh}代理已在后台运行，{boot}"
+                      f"管理界面: http://127.0.0.1:{PROXY_PORT}/admin/")
     elif product == "gemini":
-        detail = f"{fresh}装好了。在终端输入 llxprt 就能用，/provider 可以换模型。"
+        detail = (f"{fresh}Done. Type llxprt in your terminal to use it; /provider switches models."
+                  if lang == "en"
+                  else f"{fresh}装好了。在终端输入 llxprt 就能用，/provider 可以换模型。")
     elif fresh:
         detail = fresh
     _dbg("install_success")
-    sse(pct=100, label="搞定了", done=True, msg="搞定了", detail=detail)
+    sse(pct=100, label=_L("搞定了", lang), done=True, msg=_L("搞定了", lang), detail=detail)
 
 
 def _plan(product, pv, api_key, sse):

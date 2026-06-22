@@ -1,0 +1,76 @@
+name: build-release
+
+# Builds the double-click installers (no terminal needed) and attaches them to
+# the GitHub Release whenever a version tag is pushed. The piped one-liner stays
+# the primary path; these binaries are the zero-terminal option for true
+# non-technical users. Each artifact ships a SHA-256 so users can verify it.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            sep: ';'
+          - os: macos-latest
+            sep: ':'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+      - name: Build one-file binary
+        run: pyinstaller --onefile --name coding-agent-go --add-data "providers.json${{ matrix.sep }}." server.py
+      - name: Package + checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            mv coding-agent-go.exe coding-agent-go-windows.exe
+            sha256sum coding-agent-go-windows.exe > coding-agent-go-windows.exe.sha256
+          else
+            # Wrap the binary with a double-click launcher (Finder won't run a
+            # bare unix executable on double-click) and zip them together.
+            printf '#!/bin/bash\ncd "$(dirname "$0")"\n./coding-agent-go\n' > run.command
+            chmod +x run.command coding-agent-go
+            zip -j coding-agent-go-macos.zip coding-agent-go run.command
+            sha256sum coding-agent-go-macos.zip > coding-agent-go-macos.zip.sha256
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            dist/coding-agent-go-*.exe
+            dist/coding-agent-go-*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+                 --title "$tag" --notes "Double-click installers for $tag. Verify with the matching .sha256 before running."
+          gh release upload "$tag" artifacts/* --repo "$GITHUB_REPOSITORY" --clobber

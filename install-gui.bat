@@ -61,7 +61,7 @@ goto :end
 set "APPDIR=%TEMP%\coding-agent-go\"
 if not exist "%APPDIR%" mkdir "%APPDIR%"
 echo Downloading server.py / providers.json ...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $d=Join-Path $env:TEMP 'coding-agent-go'; Invoke-WebRequest 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main/server.py' -OutFile (Join-Path $d 'server.py') -UseBasicParsing; Invoke-WebRequest 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@main/providers.json' -OutFile (Join-Path $d 'providers.json') -UseBasicParsing"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $d=Join-Path $env:TEMP 'coding-agent-go'; Invoke-WebRequest 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/server.py' -OutFile (Join-Path $d 'server.py') -UseBasicParsing; Invoke-WebRequest 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/providers.json' -OutFile (Join-Path $d 'providers.json') -UseBasicParsing"
 exit /b
 
 :end
