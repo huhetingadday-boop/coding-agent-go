@@ -319,10 +319,11 @@ a:hover{text-decoration:underline}
    Provider cards (grid)
    ═══════════════════════════════════════════════════════════════════════════ */
 .providers{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  display:flex;flex-wrap:wrap;justify-content:center;
   gap:14px;margin-top:4px;
 }
 .provider{
+  flex:1 1 168px;max-width:240px;
   background:var(--surface2);border:2px solid transparent;border-radius:var(--radius-sm);
   padding:26px 18px;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;text-align:center;
   position:relative;outline:none;display:flex;flex-direction:column;align-items:center;
@@ -383,12 +384,20 @@ input[type=password]:focus,input[type=text]:focus{
 input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg)!important}
 .input-hint{font-size:12.5px;color:var(--text3);margin-top:10px}
 .key-privacy{font-size:12px;color:var(--text2);margin-top:14px;line-height:1.5;padding:9px 12px;background:var(--green-bg);border-radius:var(--radius-xs)}
+.done-card{margin-top:16px;padding:18px 18px;background:var(--green-bg);border:1px solid var(--border2);border-radius:var(--radius-sm)}
+.done-card .done-title{font-weight:700;font-size:15px;margin-bottom:12px}
+.done-run{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.done-run-label{color:var(--text2);font-size:13px}
+.done-cmd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-xs);padding:5px 12px}
+.copy-btn{font-size:12.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);border-radius:var(--radius-xs);padding:5px 12px;transition:all .15s}
+.copy-btn:hover{color:var(--text);border-color:var(--text3)}
+.done-try,.done-cost{font-size:12.5px;color:var(--text2);line-height:1.55;margin-top:6px}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Key guide
    ═══════════════════════════════════════════════════════════════════════════ */
 .key-wrap{display:flex;gap:36px}
-@media(max-width:560px){.key-wrap{flex-direction:column;gap:24px}}
+@media(max-width:560px){.key-wrap{flex-direction:column;gap:24px}.card{padding:26px 20px}.card-head{margin-bottom:22px}.header{padding:40px 22px 4px}}
 .key-steps{flex:1.2}
 .input-wrap{flex:1}
 .key-step{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px}
@@ -678,7 +687,7 @@ var I18N = {
     keyStep3:"点击「创建 API Key」并复制", keyStep4:"粘贴到右侧输入框",
     keyDoc:"官方图文教程",
     keyPrivacy:"🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。",
-    doneTitle:"装好了 🎉",
+    doneTitle:"装好了 🎉", copy:"复制", copied:"已复制 ✓",
     nextTitle:"装好了，怎么用？", nextTry:"不知道终端在哪？Mac 在「启动台」搜 Terminal，Windows 搜 PowerShell；打开后输入上面这行命令回车，再随便说一句试试，比如：帮我写一个能跑的 Python 小脚本",
     costNote:"💡 按量计费，先充几块钱能用很久；用量在所选厂商的官网后台可查。",
     keyBad:"✗ Key 里混了中文或特殊字符，重新复制一下", keyOk:"✓ 格式通过",
@@ -711,7 +720,7 @@ var I18N = {
     keyStep3:"Click “Create API Key” and copy it", keyStep4:"Paste it into the box on the right",
     keyDoc:"Official step-by-step guide",
     keyPrivacy:"🔒 Your key only goes to the selected model's official API and your own computer — never to the author or any third party.",
-    doneTitle:"All set 🎉",
+    doneTitle:"All set 🎉", copy:"Copy", copied:"Copied ✓",
     nextTitle:"Installed — how do I use it?", nextTry:"Not sure where the terminal is? Mac: search ‘Terminal’ in Launchpad; Windows: search ‘PowerShell’. Open it, run the command above, then just say something, e.g.: write me a small Python script that runs",
     costNote:"💡 Pay-as-you-go — topping up a small amount lasts a long time; check usage on the vendor's website.",
     keyBad:"✗ The key has Chinese or special characters — copy it again", keyOk:"✓ Format looks good",
@@ -950,6 +959,16 @@ function addLog(msg,cls){
   var d = E("div","log-line"+(cls?" "+cls:""),msg);
   var lg=$("log");lg.appendChild(d);lg.scrollTop=lg.scrollHeight;
 }
+// Clipboard fallback for older browsers / non-secure contexts where
+// navigator.clipboard is unavailable.
+function fallbackCopy(text){
+  try{
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
+  }catch(e){}
+}
 
 var curStepLabel="";
 function setProg(pct,label){
@@ -980,17 +999,30 @@ function finishInstall(ok,msg,detail){
     $("s3t").textContent=t("doneTitle");   // heading was "正在装…"; flip it to a done state
     $("progLabel").innerHTML='<span style="color:var(--green);font-weight:700;font-size:15px">'+t("okStatus")+'</span>';
     addLog("",""); addLog(t("doneBanner"),"ok");
-    addLog(t("nextTitle"),"ok");
     var cmd=agent==="claude"?"claude":(agent==="codex"?"codex":"llxprt");
-    addLog(t("runTerm")+cmd);
-    addLog(t("nextTry"),"dim");
-    if(detail)addLog(detail,"dim");
-    addLog(t("costNote"),"dim");
-    addLog("═══════════════════════","dim");
-    $("actBar").innerHTML="";
+    // A real "what now" panel (not monospace log spew) with the command in a
+    // copy-able pill — the one thing the user must run.
+    var dc=E("div","done-card");
+    dc.appendChild(E("div","done-title",t("nextTitle")));
+    var run=E("div","done-run");
+    run.appendChild(E("span","done-run-label",t("runTerm")));
+    run.appendChild(E("code","done-cmd",cmd));
+    var cp=E("button","copy-btn",t("copy"));
+    cp.onclick=function(){
+      var ok=function(){cp.textContent=t("copied");setTimeout(function(){cp.textContent=t("copy")},1600)};
+      try{ navigator.clipboard.writeText(cmd).then(ok,function(){fallbackCopy(cmd);ok()}); }
+      catch(e){ fallbackCopy(cmd); ok(); }
+    };
+    run.appendChild(cp);
+    dc.appendChild(run);
+    dc.appendChild(E("div","done-try",t("nextTry")));
+    if(detail)dc.appendChild(E("div","done-try",detail));
+    dc.appendChild(E("div","done-cost",t("costNote")));
+    var ab=$("actBar"); ab.parentNode.insertBefore(dc,ab);
+    ab.innerHTML="";
     var home=E("button","btn btn-pri btn-sm",t("home"));
     home.onclick=function(){location.reload()};
-    $("actBar").appendChild(home);
+    ab.appendChild(home);
   }else{
     var errMsg=msg||t("errDefault");
     $("progFill").style.width="100%";
@@ -1273,8 +1305,9 @@ def run_install(h, product, provider_id, api_key, confirm_overwrite=False, lang=
 
     # Expose the SSE callback to _run so slow subprocesses can stream a
     # heartbeat. Only one install runs at a time (guarded by _in_progress).
-    global _ACTIVE_SSE
+    global _ACTIVE_SSE, _ACTIVE_LANG
     _ACTIVE_SSE = sse
+    _ACTIVE_LANG = lang
 
     def err(msg):
         sse(log=f"✗ {msg}", cls="err")
@@ -1520,6 +1553,46 @@ def _win_cmd(cmd):
 # Set to the active SSE callback during an install (see run_install) so a slow
 # subprocess can stream a liveness heartbeat. None when no install is running.
 _ACTIVE_SSE = None
+# Language of the running install ("zh"/"en"); lets deep helpers (friendly error
+# messages) localize without threading lang through every call.
+_ACTIVE_LANG = "zh"
+
+
+def _await_with_tick(fn, timeout=120):
+    """Run a blocking callable in a worker thread and emit a `tick` heartbeat
+    every 2s to the active SSE, so a slow network call (verify ping, proxy
+    startup) never freezes the progress bar. Re-raises whatever fn raises."""
+    box = {}
+
+    def _w():
+        try:
+            box["r"] = fn()
+        except BaseException as e:
+            box["e"] = e
+
+    th = threading.Thread(target=_w, daemon=True)
+    t0 = time.time()
+    th.start()
+    sse = _ACTIVE_SSE
+    while True:
+        th.join(timeout=2.0)
+        if not th.is_alive():
+            break
+        if sse:
+            try:
+                sse(tick=round(time.time() - t0))
+            except Exception:
+                pass
+        if time.time() - t0 > timeout + 10:
+            break  # safety: never spin forever if the thread wedges
+    if "e" in box:
+        raise box["e"]
+    return box.get("r")
+
+
+def _t(zh, en):
+    """Pick a log/message string for the running install's language."""
+    return en if _ACTIVE_LANG == "en" else zh
 
 
 def _run(cmd, **kw):
@@ -1588,7 +1661,7 @@ def _npm_global(pkg, sse):
     past `sudo npm`) can't block the install with EACCES."""
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
     base = ["npm", "install", "-g", pkg, "--no-fund", "--no-audit", "--cache", cache]
-    sse(log="  从 npmmirror 镜像安装…", cls="dim")
+    sse(log=_t("  从 npmmirror 镜像安装…", "  Installing from the npmmirror mirror…"), cls="dim")
     try:
         _run(base + ["--registry", NPM_MIRROR], timeout=180)
         return
@@ -1737,7 +1810,7 @@ def _install_brew(sse):
     if _skip_for_test(sse, "装 Homebrew"):
         return
     if _which("brew"):
-        sse(log="  已检测到 brew，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 brew，跳过安装", "  brew already present, skipping"), cls="dim")
         return
     env = os.environ.copy()
     env.update({
@@ -1760,7 +1833,7 @@ def _install_brew(sse):
     except Exception:
         pass
     if not ok:
-        sse(log="换国内源…", cls="dim")
+        sse(log=_t("换国内源…", "Switching to a China mirror…"), cls="dim")
         _run(["bash", "-c",
               "curl -fsSL https://cdn.jsdelivr.net/gh/Homebrew/install@HEAD/install.sh | bash"],
              timeout=300, env=env)
@@ -1821,7 +1894,7 @@ def _install_gh(sse):
     if _skip_for_test(sse, "装 GitHub CLI"):
         return
     if _which("gh"):
-        sse(log="  已检测到 gh，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 gh，跳过安装", "  gh already present, skipping"), cls="dim")
         return
     if IS_MAC and _which("brew"):
         _run(["brew", "install", "gh"], timeout=600, env=_brew_env())
@@ -1891,7 +1964,7 @@ def _install_claude(sse):
     if _skip_for_test(sse, "装 Claude Code"):
         return
     if _has_our("claude", "@anthropic-ai/claude-code"):
-        sse(log="  已检测到 Claude Code，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 Claude Code，跳过安装", "  Claude Code already present, skipping"), cls="dim")
         return
     # Windows has no bash by default. Install Claude Code via npm if Node is
     # present; otherwise install Node first (which has its own MSI fallback).
@@ -1902,7 +1975,7 @@ def _install_claude(sse):
             _refresh_windows_path()
         _npm_global("@anthropic-ai/claude-code", sse)
         _refresh_windows_path()
-        sse(log="  Claude Code 安装完成 (npm)", cls="ok")
+        sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
         return
     # macOS / Linux: try the official installer first, then brew cask.
     sse(log="走官方源…", cls="dim")
@@ -1954,36 +2027,44 @@ def _write_claude_cfg(sse, pv, api_key):
     data["env"] = env
     data["skipIntroduction"] = True
     cfg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    sse(log=f"  已写入 {cfg}")
+    sse(log=_t(f"  已写入 {cfg}", f"  Wrote {cfg}"))
 
 
 def _friendly_upstream_error(code, body):
-    """Turn an upstream/proxy error into a clear message users can act on."""
+    """Turn an upstream/proxy error into a clear message users can act on.
+    Localized to the running install's language (_ACTIVE_LANG)."""
     body = body or ""
     low = body.lower()
+    en = _ACTIVE_LANG == "en"
     balance = ("insufficient balance" in low or "exceeded_current_quota" in low
                or "recharge" in low or "suspended" in low or "余额" in body
                or "欠费" in body or "arrears" in low)
     if balance:
-        return "厂商账户余额不足或被暂停，请到厂商控制台充值后再试"
+        return ("Your vendor account is out of balance or suspended — top it up in the vendor console and try again"
+                if en else "厂商账户余额不足或被暂停，请到厂商控制台充值后再试")
     if code in (401, 403):
-        return "API Key 无效（被厂商拒绝），请检查 Key 是否过期或复制错了"
+        return ("API key rejected by the vendor — check it hasn't expired or been copied wrong"
+                if en else "API Key 无效（被厂商拒绝），请检查 Key 是否过期或复制错了")
     if code == 408 or "timeout" in low or "timed out" in low:
-        return "厂商响应超时，先重试一次；还是不行就检查网络或换模型"
+        return ("The vendor timed out — retry once; if it keeps failing, check your network or switch models"
+                if en else "厂商响应超时，先重试一次；还是不行就检查网络或换模型")
     if code == 429 or "rate_limit" in low or "rate limit" in low:
-        return "被厂商限流了（请求太频繁或额度用尽），过会儿再试或检查套餐额度"
+        return ("Rate-limited by the vendor (too many requests or quota used up) — wait a bit or check your plan"
+                if en else "被厂商限流了（请求太频繁或额度用尽），过会儿再试或检查套餐额度")
     if code in (500, 502, 503, 504):
-        return f"厂商服务器临时不可用 (HTTP {code})，稍等再试；持续失败去厂商状态页"
+        return (f"Vendor server temporarily unavailable (HTTP {code}) — wait and retry; if it persists, check the vendor status page"
+                if en else f"厂商服务器临时不可用 (HTTP {code})，稍等再试；持续失败去厂商状态页")
     if code == 404:
-        return "端点不存在，厂商接口可能已变更"
+        return ("Endpoint not found — the vendor's API may have changed"
+                if en else "端点不存在，厂商接口可能已变更")
     snip = body.strip()[:120]
-    return f"服务器返回 HTTP {code}" + (f": {snip}" if snip else "")
+    return (f"Server returned HTTP {code}" if en else f"服务器返回 HTTP {code}") + (f": {snip}" if snip else "")
 
 
 def _verify_claude(sse, pv, api_key):
     if _skip_for_test(sse, "连通性验证"):
         return
-    sse(log=f"连接 {pv['base_url']} …", cls="dim")
+    sse(log=_t(f"连接 {pv['base_url']} …", f"Connecting to {pv['base_url']} …"), cls="dim")
 
     def _ping(with_thinking):
         payload = {
@@ -2003,7 +2084,9 @@ def _verify_claude(sse, pv, api_key):
                 "authorization": f"Bearer {api_key}",
             })
         try:
-            resp = urllib.request.urlopen(req, timeout=90)
+            # urlopen blocks; run it under a heartbeat so a slow/hanging vendor
+            # keeps the progress bar ticking instead of freezing for up to 90s.
+            resp = _await_with_tick(lambda: urllib.request.urlopen(req, timeout=90), timeout=90)
             return resp.status, ""
         except urllib.error.HTTPError as e:
             try:
@@ -2017,17 +2100,18 @@ def _verify_claude(sse, pv, api_key):
         # and retry once if the upstream tells us so.
         code, bt = _ping(bool(pv.get("thinking_required")))
         if code == 400 and "thinking" in bt.lower() and "enabled" in bt.lower():
-            sse(log="  该模型要求开启思考，重试…", cls="dim")
+            sse(log=_t("  该模型要求开启思考，重试…", "  Model requires thinking enabled; retrying…"), cls="dim")
             code, bt = _ping(True)
         if code == 200:
-            sse(log="  连通 OK", cls="ok")
+            sse(log=_t("  连通 OK", "  Connected OK"), cls="ok")
             return
         sse(log=f"  HTTP {code}", cls="err")
         if bt:
             sse(log=f"  {bt}", cls="dim")
         raise Exception(_friendly_upstream_error(code, bt))
     except (urllib.error.URLError, socket.timeout, ConnectionError):
-        raise Exception(f"连不上厂商 {pv['base_url']} — 检查网络或稍后再试")
+        raise Exception(_t(f"连不上厂商 {pv['base_url']} — 检查网络或稍后再试",
+                           f"Can't reach the vendor {pv['base_url']} — check your network or try later"))
 
 
 def _smoke_star_cc(sse):
@@ -2054,7 +2138,7 @@ def _install_llxprt(sse):
     if _skip_for_test(sse, "装 llxprt-code"):
         return
     if _has_our("gemini", "@vybestack/llxprt-code"):
-        sse(log="  已检测到 llxprt-code，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 llxprt-code，跳过安装", "  llxprt-code already present, skipping"), cls="dim")
     else:
         if IS_WIN and not (_which("node") and _which("npm")):
             _install_node(sse)
@@ -2063,7 +2147,7 @@ def _install_llxprt(sse):
         # PATH refresh AFTER npm created %APPDATA%\npm\llxprt.cmd, so a fresh
         # shell (and this process) can resolve `llxprt`.
         _refresh_windows_path()
-        sse(log="  llxprt-code 安装完成")
+        sse(log=_t("  llxprt-code 安装完成", "  llxprt-code installed"))
     # On macOS/Linux, (re)write our `gemini` shim so the PATH-resolved `gemini`
     # points to llxprt, not to a stale @google/gemini-cli left over from
     # Homebrew. Without this, `gemini` still asks for Google's login even
@@ -2099,12 +2183,12 @@ def _ensure_gemini_shim(sse):
     )
     try:
         if shim.exists() and shim.read_text(encoding="utf-8") == content:
-            sse(log=f"  已检测到 {shim} 指向 llxprt，跳过", cls="dim")
+            sse(log=_t(f"  已检测到 {shim} 指向 llxprt，跳过", f"  {shim} already points to llxprt, skipping"), cls="dim")
             return
         bin_dir.mkdir(parents=True, exist_ok=True)
         shim.write_text(content, encoding="utf-8")
         os.chmod(shim, 0o755)
-        sse(log=f"  已写入 {shim} (转发到 llxprt)", cls="ok")
+        sse(log=_t(f"  已写入 {shim} (转发到 llxprt)", f"  Wrote {shim} (forwards to llxprt)"), cls="ok")
     except Exception as e:
         sse(log=f"  写入 {shim} 失败：{e}", cls="warn")
 
@@ -2125,7 +2209,7 @@ def _write_llxprt_cfg(sse, pv, api_key):
     data["model"] = pv["model"]
     data["baseUrl"] = pv["base_url"]
     cfg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    sse(log=f"  llxprt-code 配置已写入 {cfg}")
+    sse(log=_t(f"  llxprt-code 配置已写入 {cfg}", f"  Wrote llxprt-code config to {cfg}"))
 
 
 def _smoke_star_gemini(sse):
@@ -2149,7 +2233,7 @@ def _install_node(sse, min_major=0):
     if _skip_for_test(sse, "装 Node.js"):
         return
     if _which("node") and _which("npm") and _node_major() >= min_major:
-        sse(log="  已检测到 Node.js，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 Node.js，跳过安装", "  Node.js already present, skipping"), cls="dim")
         return
     if IS_MAC:
         if _which("brew"):
@@ -2159,7 +2243,7 @@ def _install_node(sse, min_major=0):
     elif IS_WIN:
         _refresh_windows_path()
         if _which("node") and _which("npm") and _node_major() >= min_major:
-            sse(log="  已检测到 Node.js，跳过安装", cls="dim")
+            sse(log=_t("  已检测到 Node.js，跳过安装", "  Node.js already present, skipping"), cls="dim")
             return
         if _which("winget"):
             try:
@@ -2241,7 +2325,7 @@ def _install_codex(sse):
     if _skip_for_test(sse, "装 Codex CLI"):
         return
     if _has_our("codex", "@openai/codex"):
-        sse(log="  已检测到 Codex CLI，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 Codex CLI，跳过安装", "  Codex CLI already present, skipping"), cls="dim")
         return
     sse(log="装 Codex CLI…", cls="dim")
     if IS_WIN:
@@ -2305,7 +2389,7 @@ def _install_m2c(sse):
     if _skip_for_test(sse, "安装 mimo2codex"):
         return
     if _npm_has("mimo2codex"):
-        sse(log="  已检测到 mimo2codex，跳过安装", cls="dim")
+        sse(log=_t("  已检测到 mimo2codex，跳过安装", "  mimo2codex already present, skipping"), cls="dim")
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
     if IS_WIN:
@@ -2415,7 +2499,7 @@ def _write_proxy_cfg(sse, pv, api_key):
     (d / "providers.json").write_text(
         json.dumps({"providers": [spec]}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8")
-    sse(log=f"  代理配置已写入 {d}")
+    sse(log=_t(f"  代理配置已写入 {d}", f"  Wrote proxy config to {d}"))
 
 
 def _write_codex_cfg(sse, pv):
@@ -2442,13 +2526,14 @@ def _write_codex_cfg(sse, pv):
         f"requires_openai_auth = false\n"
         f'request_max_retries = 1\n',
         encoding="utf-8")
-    sse(log=f"  Codex 配置已写入 {cfg}")
+    sse(log=_t(f"  Codex 配置已写入 {cfg}", f"  Wrote Codex config to {cfg}"))
 
 
 def _start_proxy(sse, pv, api_key):
     if _skip_for_test(sse, "起代理"):
         return
-    sse(log=f"启动 mimo2codex 代理 (端口 {PROXY_PORT})…", cls="dim")
+    sse(log=_t(f"启动 mimo2codex 代理 (端口 {PROXY_PORT})…",
+               f"Starting the mimo2codex proxy (port {PROXY_PORT})…"), cls="dim")
     _kill_port(PROXY_PORT)
     logf = Path(tempfile.gettempdir()) / "coding-agent-go-proxy.log"
     env = os.environ.copy()
@@ -2467,16 +2552,22 @@ def _start_proxy(sse, pv, api_key):
                 kwargs["start_new_session"] = True
             subprocess.Popen(_proxy_argv(pv), **kwargs)
     except Exception as e:
-        raise Exception(f"启动 mimo2codex 失败: {e}")
+        raise Exception(_t(f"启动 mimo2codex 失败: {e}", f"Failed to start mimo2codex: {e}"))
+    t0 = time.time()
     for i in range(30):
         time.sleep(0.5)
+        # Heartbeat so the bar shows elapsed seconds while we wait (up to 15s)
+        # for the proxy port to come up, instead of sitting frozen.
+        if _ACTIVE_SSE:
+            try: _ACTIVE_SSE(tick=round(time.time() - t0))
+            except Exception: pass
         try:
             r = subprocess.run(
                 ["curl", "-sf", "--connect-timeout", "2",
                  f"http://127.0.0.1:{PROXY_PORT}/v1/models"],
                 capture_output=True, timeout=5)
             if r.returncode == 0:
-                sse(log="  代理就绪 ✓", cls="ok")
+                sse(log=_t("  代理就绪 ✓", "  Proxy ready ✓"), cls="ok")
                 _setup_autostart(sse, api_key, pv)
                 return
         except Exception:
@@ -2615,7 +2706,8 @@ def _verify_codex(sse, pv, api_key):
     if _skip_for_test(sse, "连通性验证"):
         return
     up = f"http://127.0.0.1:{PROXY_PORT}"
-    sse(log=f"验证链路… (mimo2codex → {pv['label']})", cls="dim")
+    sse(log=_t(f"验证链路… (mimo2codex → {pv['label']})",
+               f"Verifying the path… (mimo2codex → {pv['label_en']})"), cls="dim")
     body = json.dumps({
         "model": pv["model"], "max_tokens": 4,
         "messages": [{"role": "user", "content": "pong"}],
@@ -2626,9 +2718,9 @@ def _verify_codex(sse, pv, api_key):
                  "authorization": f"Bearer {api_key}"})
     for attempt in range(3):
         try:
-            resp = urllib.request.urlopen(req, timeout=30)
+            resp = _await_with_tick(lambda: urllib.request.urlopen(req, timeout=30), timeout=30)
             if resp.status == 200:
-                sse(log="  链路 OK", cls="ok")
+                sse(log=_t("  链路 OK", "  Path OK"), cls="ok")
                 return
         except urllib.error.HTTPError as e:
             bt = ""
@@ -2639,10 +2731,11 @@ def _verify_codex(sse, pv, api_key):
             raise Exception(_friendly_upstream_error(e.code, bt))
         except (urllib.error.URLError, socket.timeout, ConnectionError):
             if attempt < 2:
-                sse(log=f"  重试 {attempt+2}/3…", cls="dim")
+                sse(log=_t(f"  重试 {attempt+2}/3…", f"  Retry {attempt+2}/3…"), cls="dim")
                 time.sleep(2)
             else:
-                raise Exception("代理无响应 — mimo2codex 可能未启动")
+                raise Exception(_t("代理无响应 — mimo2codex 可能未启动",
+                                   "The proxy is not responding — mimo2codex may not have started"))
 
 
 def _smoke_star_codex(sse):

@@ -430,5 +430,25 @@ class E2ETest(unittest.TestCase):
         self.assertNotIn('File "', blob)
 
 
+class UnitTest(unittest.TestCase):
+    """Pure-function unit tests that don't need a running server."""
+
+    def test_friendly_error_is_localized(self):
+        import re as _re
+        sys.path.insert(0, str(PROJECT_DIR))
+        import server
+        has_cjk = lambda s: bool(_re.search(r"[一-鿿]", s))
+        # English install: the on-failure message must carry no Chinese.
+        server._ACTIVE_LANG = "en"
+        for code in (401, 429, 500):
+            msg = server._friendly_upstream_error(code, "")
+            self.assertFalse(has_cjk(msg), f"en message for {code} has Chinese: {msg}")
+        self.assertIn("balance", server._friendly_upstream_error(200, "insufficient balance"))
+        # Chinese is the default.
+        server._ACTIVE_LANG = "zh"
+        self.assertIn("余额", server._friendly_upstream_error(200, "insufficient balance"))
+        self.assertIn("API Key", server._friendly_upstream_error(401, ""))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -2,6 +2,7 @@
   "providers": [
     {
       "id": "deepseek",
+      "recommended": true,
       "label": "DeepSeek",
       "label_en": "DeepSeek",
       "base_url": "https://api.deepseek.com/anthropic",
@@ -33,7 +34,6 @@
     },
     {
       "id": "glm",
-      "recommended": true,
       "label": "智谱 GLM",
       "label_en": "Zhipu GLM",
       "base_url": "https://open.bigmodel.cn/api/anthropic",
@@ -59,8 +59,8 @@
       "key_url": "https://bailian.console.aliyun.com/?tab=model#/api-key",
       "doc_url": "https://help.aliyun.com/zh/model-studio/claude-code",
       "icon": "☁️",
-      "description_zh": "阿里",
-      "description_en": "Alibaba"
+      "description_zh": "通用均衡",
+      "description_en": "well-rounded"
     },
     {
       "id": "minimax",
@@ -74,8 +74,8 @@
       "key_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
       "doc_url": "https://platform.minimaxi.com/docs/token-plan/claude-code",
       "icon": "⚡",
-      "description_zh": "便宜",
-      "description_en": "cheap"
+      "description_zh": "便宜实惠",
+      "description_en": "budget pick"
     }
   ]
 }

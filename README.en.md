@@ -46,11 +46,11 @@ The installer tells you the next step when it finishes. In short:
 
 | Option | Vendor | Default model |
 |--------|--------|---------------|
-| `glm` | Zhipu GLM (recommended) | glm-4.6 |
+| `deepseek` | DeepSeek (recommended) | deepseek-v4-pro |
+| `glm` | Zhipu GLM | glm-4.6 |
 | `kimi` | Kimi (Moonshot) | kimi-k2.7-code |
 | `minimax` | MiniMax | MiniMax-M3 |
 | `qwen` | Qwen | qwen3-coder-plus |
-| `deepseek` | DeepSeek | deepseek-v4-pro |
 
 ## No API key yet
 The GUI shows each vendor's API key page and the steps to get one. Sign up, create a key, copy it, and paste it in.

@@ -46,11 +46,11 @@ irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/instal
 
 | 选项 | 厂商 | 默认模型 |
 |------|------|----------|
-| `glm` | 智谱 GLM（推荐） | glm-4.6 |
+| `deepseek` | DeepSeek（推荐） | deepseek-v4-pro |
+| `glm` | 智谱 GLM | glm-4.6 |
 | `kimi` | Kimi (Moonshot) | kimi-k2.7-code |
 | `minimax` | MiniMax | MiniMax-M3 |
 | `qwen` | 通义千问 Qwen | qwen3-coder-plus |
-| `deepseek` | DeepSeek | deepseek-v4-pro |
 
 ## 没有 API Key 怎么办
 GUI 里会给出每个厂商的 API Key 申请页链接和步骤指引。注册、新建 key、复制、粘贴即可。
