@@ -1434,8 +1434,10 @@ def _plan(product, pv, api_key, sse):
     # only fires when X is missing AND any PATH-resolved binary truly belongs
     # to the package we want (a stale shim forwarding to the wrong package
     # still counts as "not installed" so we replace it with the right one).
-    if IS_MAC and not _which("brew"):
-        steps.append(("装 Homebrew", lambda: _install_brew(sse), False))
+    # No mandatory Homebrew step: macOS no longer depends on brew. Node installs
+    # from a portable tarball (no brew / no Xcode CLT / no admin), and gh is only
+    # used for the optional repo-star. brew is used if already present, and as a
+    # last-resort Node fallback if every mirror is down (see _install_node).
     if product in ("claude", "codex", "gemini") and not _which("gh"):
         steps.append(("装 GitHub CLI", lambda: _install_gh(sse), True))
     # Windows: let npm-generated CLI shims (claude.ps1 etc.) run in PowerShell,
@@ -1896,6 +1898,11 @@ def _install_brew(sse):
     if _which("brew"):
         sse(log=_t("  已检测到 brew，跳过安装", "  brew already present, skipping"), cls="dim")
         return
+    # Homebrew requires the Xcode Command Line Tools. Without them its installer
+    # triggers a slow `softwareupdate`; fail fast and clearly instead.
+    if not _clt_present():
+        raise Exception(_t("没装 Xcode 命令行工具，无法装 Homebrew（一般用不到 brew，可忽略）",
+                           "Xcode Command Line Tools missing; can't install Homebrew (usually not needed)"))
     env = os.environ.copy()
     env.update({
         # Clone Homebrew + pull formulae/bottles from USTC, not GitHub — the
@@ -1997,9 +2004,14 @@ def _install_gh(sse):
     if _which("gh"):
         sse(log=_t("  已检测到 gh，跳过安装", "  gh already present, skipping"), cls="dim")
         return
-    if IS_MAC and _which("brew"):
-        _run(["brew", "install", "gh"], timeout=600, env=_brew_env())
-        return
+    if IS_MAC:
+        if _which("brew"):
+            _run(["brew", "install", "gh"], timeout=600, env=_brew_env())
+            return
+        # gh is only used for the optional repo-star, and we no longer install
+        # brew just for it. Skip cleanly (this step is optional).
+        raise Exception(_t("没有 brew，跳过 gh（只影响给项目点 star，不影响使用）",
+                           "No brew; skipping gh (only affects the repo star, not usage)"))
     if IS_LINUX:
         if not _which("sudo") or subprocess.run(
                 ["sudo", "-n", "true"], capture_output=True).returncode != 0:
@@ -2335,6 +2347,100 @@ def _smoke_star_gemini(sse):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Shared codex/gemini helpers
 # ═══════════════════════════════════════════════════════════════════════════════
+def _clt_present():
+    """True if Xcode Command Line Tools are installed (mac). Homebrew needs
+    them; the portable Node tarball does not."""
+    if not IS_MAC:
+        return True
+    try:
+        return subprocess.run(["xcode-select", "-p"], capture_output=True,
+                              timeout=10).returncode == 0
+    except Exception:
+        return False
+
+
+def _persist_unix_path(bindir, sse=None):
+    """Add `bindir` to PATH for this process and persist it to the user's shell
+    profiles — the no-admin way rustup/bun/deno make a portable tool findable in
+    future terminals. Idempotent; tagged `# coding-agent-go` for easy uninstall."""
+    bindir = str(bindir)
+    if bindir not in os.environ.get("PATH", "").split(os.pathsep):
+        os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
+    line = f'export PATH="{bindir}:$PATH"  # coding-agent-go'
+    home = Path.home()
+    wrote = False
+    for f in (home / ".zprofile", home / ".zshrc",
+              home / ".bash_profile", home / ".bashrc"):
+        try:
+            existing = f.read_text(encoding="utf-8") if f.exists() else ""
+            if "# coding-agent-go" in existing and bindir in existing:
+                continue
+            with open(f, "a", encoding="utf-8") as fh:
+                if existing and not existing.endswith("\n"):
+                    fh.write("\n")
+                fh.write(line + "\n")
+            wrote = True
+        except Exception as e:
+            _dbg(f"persist PATH to {f} failed: {e}")
+    if wrote and sse:
+        sse(log=_t("  已加入 PATH（请开一个新终端窗口）",
+                   "  Added to PATH (open a new terminal window)"), cls="dim")
+
+
+def _install_node_tarball_mac(sse, min_major=0):
+    """Install a portable prebuilt Node on macOS — no brew, no Xcode CLT, no
+    admin, no VPN. Same idea as our Windows ZIP path and as fnm/volta/rustup:
+    download the official prebuilt, unpack to ~/.coding-agent-go/node, add its
+    bin to PATH. China mirrors first."""
+    ver = "v22.11.0"
+    arch = "arm64" if platform.machine() == "arm64" else "x64"
+    asset = f"node-{ver}-darwin-{arch}.tar.gz"
+    dest = Path.home() / ".coding-agent-go" / "node"
+    sse(log=_t("下载 Node.js LTS（免编译、免管理员）…",
+               "Downloading Node.js LTS (no compiler, no admin)…"), cls="dim")
+    tpath = Path(tempfile.gettempdir()) / asset
+    urls = [f"https://cdn.npmmirror.com/binaries/node/{ver}/{asset}",
+            f"https://mirrors.ustc.edu.cn/node/{ver}/{asset}",
+            f"https://nodejs.org/dist/{ver}/{asset}"]
+    dl_ok = False
+    for u in urls:
+        host = u.split("//", 1)[-1].split("/", 1)[0]
+        try:
+            sse(log=_t(f"  从 {host} 下载…", f"  Downloading from {host}…"), cls="dim")
+            _download(u, tpath, timeout=180)
+            dl_ok = True
+            break
+        except Exception:
+            sse(log=_t(f"    {host} 失败，换下一个镜像",
+                       f"    {host} failed, trying the next mirror"), cls="dim")
+    if not dl_ok:
+        raise Exception(_t("Node.js 下载失败（多个镜像都不通）",
+                           "Node.js download failed (all mirrors unreachable)"))
+    import tarfile
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(tpath) as tf:
+        top = tf.getnames()[0].split("/")[0]  # node-v22.11.0-darwin-arm64
+        tf.extractall(dest.parent)
+    extracted = dest.parent / top
+    if dest.exists():
+        shutil.rmtree(dest, ignore_errors=True)
+    extracted.rename(dest)
+    nbin = dest / "bin"
+    if not (nbin / "node").exists():
+        raise Exception(_t("Node 解压异常：找不到 node", "Node extract failed: node binary missing"))
+    # Pin npm's global prefix here so `npm install -g` shims land in bin/.
+    try:
+        subprocess.run([str(nbin / "npm"), "config", "set", "prefix", str(dest)],
+                       capture_output=True, timeout=30,
+                       env={**os.environ, "PATH": str(nbin) + os.pathsep + os.environ.get("PATH", "")})
+    except Exception:
+        pass
+    _persist_unix_path(nbin, sse)
+    if not (_which("node") and _which("npm")):
+        raise Exception(_t("Node 装好但 PATH 没生效", "Node installed but PATH didn't take effect"))
+    sse(log=_t("  Node.js 就绪 ✓", "  Node.js ready ✓"), cls="ok")
+
+
 def _install_node(sse, min_major=0):
     # min_major: require at least this Node major (Codex needs >= 22 because
     # mimo2codex -> better-sqlite3 only ships prebuilt binaries for Node 22+).
@@ -2344,10 +2450,25 @@ def _install_node(sse, min_major=0):
         sse(log=_t("  已检测到 Node.js，跳过安装", "  Node.js already present, skipping"), cls="dim")
         return
     if IS_MAC:
+        # Prefer an existing brew (its PATH is already wired up); otherwise a
+        # portable Node — no brew, no Xcode CLT, no admin. brew is only a last
+        # resort if every Node mirror is unreachable.
         if _which("brew"):
             _run(["brew", "install", "node"], timeout=600, env=_brew_env())
+            _ensure_brew_path()
             return
-        raise Exception("需要 Homebrew — 请在首页选择 Claude Code（无需 Node.js）或先安装 brew")
+        try:
+            _install_node_tarball_mac(sse, min_major)
+            return
+        except Exception as e:
+            if _clt_present():
+                sse(log=_t(f"  Node 镜像都不通，改用 Homebrew：{e}",
+                           f"  Node mirrors all failed, falling back to Homebrew: {e}"), cls="dim")
+                _install_brew(sse)
+                _ensure_brew_path()
+                _run(["brew", "install", "node"], timeout=600, env=_brew_env())
+                return
+            raise
     elif IS_WIN:
         _refresh_windows_path()
         if _which("node") and _which("npm") and _node_major() >= min_major:
@@ -2969,15 +3090,45 @@ def main():
         print(f"  请尝试: python3 server.py --port {port + 1}")
         sys.exit(1)
 
-    # Don't auto-open a browser under self-test (headless CI would hang/fail).
-    if not TEST_MODE:
-        _open_browser(f"http://localhost:{port}")
+    url = f"http://localhost:{port}"
 
+    # Self-test: just serve (no window, no browser) so headless CI never blocks.
+    if TEST_MODE:
+        try:
+            srv.serve_forever()
+        except KeyboardInterrupt:
+            srv.server_close()
+        return
+
+    # Serve in the background so the UI — native window or browser — drives it.
+    srv_thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    srv_thread.start()
+
+    # Prefer a native app window. The packaged .dmg/.exe bundles pywebview, so the
+    # UI opens in its own window (WKWebView on macOS, WebView2 on Windows) and
+    # feels like an app, not a browser tab — and closing the window quits cleanly,
+    # so no localhost server is left running. The piped one-liner does not bundle
+    # pywebview, so `import webview` fails there and we fall back to the system
+    # browser (and keep serving until Ctrl-C), exactly as before.
     try:
-        srv.serve_forever()
+        import webview  # pywebview
+    except Exception:
+        webview = None
+    if webview is not None:
+        try:
+            webview.create_window("AI Coding — Go Go Go", url,
+                                   width=980, height=760, min_size=(720, 600))
+            webview.start()   # blocks on the GUI loop; returns when the window closes
+            return            # window closed → exit; the daemon server dies with us
+        except Exception as e:
+            print(f"  native window unavailable ({e}); opening your browser instead")
+
+    _open_browser(url)
+    try:
+        srv_thread.join()
     except KeyboardInterrupt:
         print("\n  shutdown.")
-        srv.server_close()
+        srv.shutdown()
 
 
 if __name__ == "__main__":

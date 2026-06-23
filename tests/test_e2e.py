@@ -478,6 +478,31 @@ class UnitTest(unittest.TestCase):
         finally:
             server._download = orig
 
+    def test_persist_unix_path_idempotent(self):
+        """The rustup-style PATH persister must add the bin dir to the shell
+        profile exactly once, even if called repeatedly."""
+        sys.path.insert(0, str(PROJECT_DIR))
+        import server
+        old_home, old_path = os.environ.get("HOME"), os.environ.get("PATH")
+        td = tempfile.mkdtemp()
+        try:
+            os.environ["HOME"] = td
+            bindir = "/tmp/fake/coding-agent-go/node/bin"
+            server._persist_unix_path(bindir)
+            server._persist_unix_path(bindir)  # called twice -> still one entry
+            zprofile = Path(td) / ".zprofile"
+            self.assertTrue(zprofile.exists(), "should write ~/.zprofile")
+            content = zprofile.read_text(encoding="utf-8")
+            self.assertEqual(content.count("# coding-agent-go"), 1, "must be idempotent")
+            self.assertIn(bindir, content)
+            self.assertIn(bindir, os.environ["PATH"])  # this process sees it too
+        finally:
+            if old_home is not None:
+                os.environ["HOME"] = old_home
+            if old_path is not None:
+                os.environ["PATH"] = old_path
+            shutil.rmtree(td, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

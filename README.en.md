@@ -94,7 +94,7 @@ Questions, feedback, or tutorial updates — join the group, or follow the autho
 > Group QR pending — drop the QR image at `docs/qrcode.png`, then uncomment to show it.
 
 ## What it does for you
-- Installs prerequisites automatically: on macOS, Homebrew + gh CLI; the Codex / Gemini paths also install Node.js
+- Installs prerequisites automatically: when Node.js is needed (Codex / Gemini, and Claude's npm fallback) it uses the official prebuilt — **no Homebrew, no Xcode Command Line Tools, no admin** (an existing brew is used if present)
 - Official sources first, automatic fallback to China mirrors (USTC / jsDelivr / npmmirror) — installs Claude Code / Codex / Gemini even without a VPN
 - Writes the config files (Claude Code: `settings.json` / Codex: `config.toml` / Gemini: llxprt `config.json`)
 - Codex path starts a local mimo2codex proxy to reach China models (`wire_api = "responses"`). The proxy is zero-auth, so no key goes into your shell config, and it is set to start on boot
@@ -116,6 +116,10 @@ Questions, feedback, or tutorial updates — join the group, or follow the autho
 ### Gemini CLI
 - Remove config: delete `~/.llxprt-code/config.json`
 - Uninstall: `npm uninstall -g @vybestack/llxprt-code`
+
+### Node.js (the portable build this tool installs on macOS when brew is absent)
+- Delete the `~/.coding-agent-go/node` folder
+- Remove the PATH line tagged `# coding-agent-go` from your shell profile (`~/.zprofile` / `~/.zshrc`, etc.)
 
 ## Debugging
 If something goes wrong during install, check the debug log:
