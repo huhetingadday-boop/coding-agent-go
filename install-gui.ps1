@@ -11,7 +11,13 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Port = 17860
-$Cdn  = 'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'
+# Try a few jsDelivr endpoints — cdn. is occasionally throttled in China, but
+# fastly./gcore. usually still resolve. All serve the same @latest tag.
+$Cdns = @(
+  'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest',
+  'https://fastly.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest',
+  'https://gcore.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'
+)
 
 function Find-Py {
   foreach ($c in @('py', 'python3', 'python')) {
@@ -45,10 +51,26 @@ if (-not $py) {
     }
   }
   if (-not $wingetOk) {
-    Write-Host 'Downloading the python.org installer...'
+    Write-Host 'Downloading the Python installer (China mirror first, no VPN needed)...'
     $exe = Join-Path $env:TEMP 'py-installer.exe'
-    Invoke-WebRequest 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe' `
-      -OutFile $exe -UseBasicParsing
+    # python.org is slow/blocked in mainland China, so try China mirrors first
+    # and only fall back to the official site as a last resort.
+    $pyUrls = @(
+      'https://cdn.npmmirror.com/binaries/python/3.12.7/python-3.12.7-amd64.exe',
+      'https://mirrors.huaweicloud.com/python/3.12.7/python-3.12.7-amd64.exe',
+      'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe'
+    )
+    $got = $false
+    foreach ($u in $pyUrls) {
+      try {
+        Write-Host ("  downloading from " + ([Uri]$u).Host + " ...")
+        Invoke-WebRequest $u -OutFile $exe -UseBasicParsing -TimeoutSec 180
+        $got = $true; break
+      } catch {
+        Write-Host ("  " + ([Uri]$u).Host + " failed, trying the next mirror...")
+      }
+    }
+    if (-not $got) { throw 'Python download failed from all mirrors. Check your network and retry.' }
     # InstallAllUsers=0 keeps it per-user so no admin/UAC prompt is needed.
     Start-Process $exe -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', `
       'Include_pip=1', 'Include_launcher=1' -Wait
@@ -69,8 +91,19 @@ if (-not $py) {
 $dir = Join-Path $env:TEMP 'coding-agent-go'
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 Write-Host 'Downloading server.py / providers.json ...'
-Invoke-WebRequest "$Cdn/server.py"      -OutFile (Join-Path $dir 'server.py')      -UseBasicParsing
-Invoke-WebRequest "$Cdn/providers.json" -OutFile (Join-Path $dir 'providers.json') -UseBasicParsing
+function Fetch-File($name) {
+  foreach ($base in $Cdns) {
+    try {
+      Invoke-WebRequest "$base/$name" -OutFile (Join-Path $dir $name) -UseBasicParsing -TimeoutSec 60
+      return
+    } catch {
+      Write-Host ("  " + ([Uri]$base).Host + " failed for $name, trying the next mirror...")
+    }
+  }
+  throw "Failed to download $name from all CDNs. Check your network, or use the .dmg/.exe installer."
+}
+Fetch-File 'server.py'
+Fetch-File 'providers.json'
 
 Write-Host "Starting coding-agent-go GUI on http://localhost:$Port (browser opens automatically) ..."
 # Don't open the browser here: the server is not listening yet, so the tab would
