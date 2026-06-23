@@ -81,7 +81,7 @@ Questions, feedback, or tutorial updates — join the group, or follow the autho
 
 ## What it does for you
 - Installs prerequisites automatically: on macOS, Homebrew + gh CLI; the Codex / Gemini paths also install Node.js
-- Official sources first, automatic fallback to China mirrors (USTC / jsDelivr) on failure
+- Official sources first, automatic fallback to China mirrors (USTC / jsDelivr / npmmirror) — installs Claude Code / Codex / Gemini even without a VPN
 - Writes the config files (Claude Code: `settings.json` / Codex: `config.toml` / Gemini: llxprt `config.json`)
 - Codex path starts a local mimo2codex proxy to reach China models (`wire_api = "responses"`). The proxy is zero-auth, so no key goes into your shell config, and it is set to start on boot
 - Sends a test request to confirm the model really works

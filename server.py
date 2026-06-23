@@ -989,7 +989,7 @@ function setTick(secs){
   $("progLabel").appendChild(t);
 }
 
-function finishInstall(ok,msg,detail){
+function finishInstall(ok,msg,detail,skipLog){
   if(finished) return;   // idempotent: error + cancel could both fire
   finished = true;
   $("progFill").classList.remove("busy");
@@ -1028,7 +1028,8 @@ function finishInstall(ok,msg,detail){
     $("progFill").style.width="100%";
     $("progFill").style.background="var(--red)";
     $("progLabel").innerHTML='<span style="color:var(--red);font-weight:700;font-size:15px">'+t("failStatus")+'</span>';
-    addLog("✗ "+errMsg,"err");
+    // The backend already streamed the "✗ …" line as a log; don't repeat it.
+    if(!skipLog)addLog("✗ "+errMsg,"err");
     $("actBar").innerHTML="";
     var rt=E("button","btn btn-sec btn-sm",t("retry"));
     var rd=E("button","btn btn-pri btn-sm",t("redo"));
@@ -1072,7 +1073,7 @@ async function doInstall(){
         if(ev.done){gotDone=true;setProg(100,ev.label||t("doneLabel"));
           setTimeout(function(){finishInstall(true,ev.msg||"",ev.detail||"")},500)}
         if(ev.error){gotErr=true;
-          setTimeout(function(){finishInstall(false,ev.error)},500)}
+          setTimeout(function(){finishInstall(false,ev.error,"",true)},500)}
       }
     }
     if(!gotDone&&!gotErr) finishInstall(false,t("errDisc"));
@@ -1806,6 +1807,18 @@ def _skip_for_test(sse, what):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Shared install steps
 # ═══════════════════════════════════════════════════════════════════════════════
+def _ensure_brew_path():
+    """Make an existing/just-installed brew visible on this process's PATH. A
+    fresh `brew install` (or a brew the GUI's PATH didn't inherit) means a later
+    _which('brew') wrongly fails, which would skip the brew-based fallbacks."""
+    if _which("brew"):
+        return
+    for bp in ("/opt/homebrew/bin", "/usr/local/bin", "/home/linuxbrew/.linuxbrew/bin"):
+        if os.path.isfile(f"{bp}/brew"):
+            os.environ["PATH"] = f"{bp}:{os.environ.get('PATH', '')}"
+            return
+
+
 def _install_brew(sse):
     if _skip_for_test(sse, "装 Homebrew"):
         return
@@ -1837,10 +1850,7 @@ def _install_brew(sse):
         _run(["bash", "-c",
               "curl -fsSL https://cdn.jsdelivr.net/gh/Homebrew/install@HEAD/install.sh | bash"],
              timeout=300, env=env)
-    for bp in ["/opt/homebrew/bin", "/usr/local/bin", "/home/linuxbrew/.linuxbrew/bin"]:
-        if os.path.isfile(f"{bp}/brew"):
-            os.environ["PATH"] = f"{bp}:{os.environ.get('PATH', '')}"
-            break
+    _ensure_brew_path()
     if not ok:
         raise Exception("Homebrew 安装失败 — https://brew.sh")
 
@@ -1977,8 +1987,13 @@ def _install_claude(sse):
         _refresh_windows_path()
         sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
         return
-    # macOS / Linux: try the official installer first, then brew cask.
-    sse(log="走官方源…", cls="dim")
+    # macOS / Linux: the official installer drops a standalone binary and needs
+    # no Node — but it must reach claude.ai, which is blocked in mainland China
+    # without a VPN. Try it (fast 8s probe), and if it can't connect, fall back
+    # to npm via the China mirror (npmmirror) — the same no-VPN path Windows
+    # uses. Claude Code ships as @anthropic-ai/claude-code on npm. This keeps
+    # the "免翻墙 / no VPN" promise even when claude.ai is unreachable.
+    sse(log=_t("走官方源…", "Trying the official installer…"), cls="dim")
     try:
         p = subprocess.run(
             ["curl", "-fsSL", "--connect-timeout", "8",
@@ -1988,11 +2003,13 @@ def _install_claude(sse):
             return
     except Exception:
         pass
-    if IS_MAC and _which("brew"):
-        sse(log="走 homebrew…", cls="dim")
-        _run(["brew", "install", "--cask", "claude-code"], timeout=600, env=_brew_env())
-        return
-    raise Exception("Claude Code 安装失败 — https://claude.ai/code")
+    sse(log=_t("官方源连不上（没翻墙也没关系），改用 npm 国内镜像…",
+               "Official source unreachable (no VPN needed) — using the npm China mirror…"), cls="dim")
+    _ensure_brew_path()
+    if not (_which("node") and _which("npm")):
+        _install_node(sse)  # mac: brew + USTC mirror; both work without a VPN
+    _npm_global("@anthropic-ai/claude-code", sse)
+    sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
 
 
 def _write_claude_cfg(sse, pv, api_key):
