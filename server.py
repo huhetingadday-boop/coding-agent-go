@@ -691,6 +691,7 @@ var I18N = {
     nextTitle:"装好了，怎么用？", nextTry:"不知道终端在哪？Mac 在「启动台」搜 Terminal，Windows 搜 PowerShell；打开后输入上面这行命令回车，再随便说一句试试，比如：帮我写一个能跑的 Python 小脚本",
     costNote:"💡 按量计费，先充几块钱能用很久；用量在所选厂商的官网后台可查。",
     keyBad:"✗ Key 里混了中文或特殊字符，重新复制一下", keyOk:"✓ 格式通过",
+    keyRemembered:"✓ 已自动填入上次的 Key（可直接开始，或粘贴新的覆盖）",
     s3title:"正在装 {a}…", prep:"准备…", doneLabel:"完事",
     okStatus:"安装好了", doneBanner:"══════ 安装完成 ══════",
     runTerm:"在终端输入: ", failStatus:"没装上",
@@ -724,6 +725,7 @@ var I18N = {
     nextTitle:"Installed — how do I use it?", nextTry:"Not sure where the terminal is? Mac: search ‘Terminal’ in Launchpad; Windows: search ‘PowerShell’. Open it, run the command above, then just say something, e.g.: write me a small Python script that runs",
     costNote:"💡 Pay-as-you-go — topping up a small amount lasts a long time; check usage on the vendor's website.",
     keyBad:"✗ The key has Chinese or special characters — copy it again", keyOk:"✓ Format looks good",
+    keyRemembered:"✓ Filled in your last key — start now, or paste a new one to replace it",
     s3title:"Installing {a}…", prep:"Preparing…", doneLabel:"Done",
     okStatus:"Installed", doneBanner:"══════ Done ══════",
     runTerm:"Run in your terminal: ", failStatus:"Install failed",
@@ -869,8 +871,10 @@ $("b1").onclick = function(){
   $("s1").classList.add("hidden");
   renderSelCard();
   renderKeySteps();
-  $("key").value = ""; $("keyHint").innerHTML = "";
-  $("b2").disabled = true;
+  // Auto-fill the last key saved for this provider so the user need not re-paste.
+  var saved = loadKey();
+  $("key").value = saved; $("keyHint").innerHTML = ""; $("b2").disabled = true; key = "";
+  if(saved) validateKey(true);
   $("s2").classList.remove("hidden");
   setStep(2);
   $("key").focus();
@@ -892,22 +896,44 @@ function renderKeySteps(){
     '<div class="key-doc">📖 <a href="'+model.doc_url+'" target="_blank">'+t("keyDoc")+'</a></div>';
 }
 
-$("key").oninput = function(){
-  key = this.value.trim();
-  if(key.length < 8){$("b2").disabled=true;$("keyHint").innerHTML="";return}
+// Remember the key on the user's own machine so a retry — or a full page
+// reload — auto-fills it instead of making them paste it again. Keyed per
+// provider so each model keeps its own key. This stays on this computer, which
+// matches the privacy promise (the key only ever leaves here to the vendor API).
+function keyStoreId(){ return model ? "cag_key_"+model.id : ""; }
+function saveKey(){
+  var id=keyStoreId(); if(!id||!key) return;
+  try{ localStorage.setItem(id, key); }catch(e){}
+}
+function loadKey(){
+  var id=keyStoreId(); if(!id) return "";
+  try{ return localStorage.getItem(id)||""; }catch(e){ return ""; }
+}
+// Validate what's in the box, toggle the Start button, and persist a good key.
+// `remembered` => the value was just auto-filled from storage, so show a gentle
+// "filled from last time" hint instead of the "format ok" one.
+function validateKey(remembered){
+  var el=$("key");
+  key = el.value.trim();
+  if(key.length < 8){ el.classList.remove("ok"); $("b2").disabled=true; $("keyHint").innerHTML=""; return; }
   if(/[^\x00-\x7F]/.test(key)){
-    this.classList.remove("ok");
+    el.classList.remove("ok");
     $("keyHint").innerHTML='<span style="color:var(--red)">'+t("keyBad")+'</span>';
-    $("b2").disabled=true;return;
+    $("b2").disabled=true; return;
   }
-  if(key.startsWith("sk-")||key.includes(".")){
-    this.classList.add("ok");
+  var looksOk = key.startsWith("sk-")||key.includes(".");
+  el.classList.toggle("ok", looksOk);
+  if(remembered){
+    $("keyHint").innerHTML='<span style="color:var(--text3)">'+t("keyRemembered")+'</span>';
+  }else if(looksOk){
     $("keyHint").innerHTML='<span style="color:var(--green)">'+t("keyOk")+'</span>';
   }else{
-    this.classList.remove("ok"); $("keyHint").innerHTML="";
+    $("keyHint").innerHTML="";
   }
   $("b2").disabled = false;
-};
+  saveKey();
+}
+$("key").oninput = function(){ validateKey(false); };
 // Enter submits the key — the universal expectation for a single text field.
 $("key").onkeydown = function(e){
   if(e.key==="Enter" && !$("b2").disabled){ e.preventDefault(); $("b2").click(); }
@@ -1037,6 +1063,11 @@ function finishInstall(ok,msg,detail,skipLog){
     rt.onclick=function(){
       $("s3").classList.add("hidden");$("s2").classList.remove("hidden");
       setStep(2);
+      // Retry should not make the user paste the key again. The field usually
+      // still holds it; if not (e.g. after a reload), refill from storage.
+      if(!$("key").value) $("key").value = loadKey();
+      if($("key").value) validateKey(false);
+      $("key").focus();
     };
     $("actBar").appendChild(rt); $("actBar").appendChild(rd);
   }
@@ -2872,6 +2903,14 @@ def _open_browser(url):
 
 
 def main():
+    # A double-click .app (PyInstaller --windowed, used for the macOS .dmg) has
+    # no attached console, so sys.stdout/stderr can be None — and print() to a
+    # None stream raises and would kill the app on launch. Swap in a sink first.
+    import io
+    if sys.stdout is None:
+        sys.stdout = io.StringIO()
+    if sys.stderr is None:
+        sys.stderr = io.StringIO()
     port = PORT
     if "--port" in sys.argv:
         idx = sys.argv.index("--port")
