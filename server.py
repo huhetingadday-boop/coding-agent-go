@@ -2284,10 +2284,31 @@ def _install_node(sse, min_major=0):
         # Node 22+, so Node 20 would force a source build (needs Visual Studio).
         ver = "v22.11.0"
         dest = Path(os.path.expandvars(r"%LOCALAPPDATA%")) / "Programs" / "nodejs"
-        sse(log="下载 Node.js LTS (zip, 免管理员)…", cls="dim")
+        sse(log=_t("下载 Node.js LTS (zip, 免管理员)…",
+                   "Downloading Node.js LTS (zip, no admin)…"), cls="dim")
         import zipfile
-        zpath = Path(tempfile.gettempdir()) / f"node-{ver}-win-x64.zip"
-        _download(f"https://nodejs.org/dist/{ver}/node-{ver}-win-x64.zip", zpath, timeout=120)
+        asset = f"node-{ver}-win-x64.zip"
+        zpath = Path(tempfile.gettempdir()) / asset
+        # China mirrors first (npmmirror / USTC) — nodejs.org is slow/unreliable
+        # behind the GFW — then the official dist as a last resort.
+        node_urls = [
+            f"https://cdn.npmmirror.com/binaries/node/{ver}/{asset}",
+            f"https://mirrors.ustc.edu.cn/node/{ver}/{asset}",
+            f"https://nodejs.org/dist/{ver}/{asset}",
+        ]
+        dl_ok = False
+        for u in node_urls:
+            host = u.split("//", 1)[-1].split("/", 1)[0]
+            try:
+                sse(log=_t(f"  从 {host} 下载…", f"  Downloading from {host}…"), cls="dim")
+                _download(u, zpath, timeout=180)
+                dl_ok = True
+                break
+            except Exception as e:
+                sse(log=_t(f"    {host} 失败，换下一个镜像", f"    {host} failed, trying the next mirror"), cls="dim")
+        if not dl_ok:
+            raise Exception(_t("Node.js 下载失败（多个镜像都不通）",
+                               "Node.js download failed (all mirrors unreachable)"))
         dest.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(zpath) as z:
             names = [n for n in z.namelist() if n.strip("/")]
@@ -2349,15 +2370,24 @@ def _install_codex(sse):
         _npm_global("@openai/codex", sse)
         _refresh_windows_path()  # so `codex` lands on PATH for a fresh shell
         return
+    # macOS/Linux: try the official installer, but chatgpt.com is blocked in
+    # mainland China without a VPN, so fall back to npm via npmmirror — same
+    # no-VPN path as Claude. Print the switch on any failure mode (non-zero
+    # exit or exception), not only on exception.
+    official_ok = False
     try:
         p = subprocess.run(
             ["curl", "-fsSL", "--connect-timeout", "8",
              "https://chatgpt.com/codex/install.sh"], capture_output=True, timeout=15)
         if p.returncode == 0:
             _run(["bash"], input=p.stdout, timeout=120)
-            return
+            official_ok = True
     except Exception:
-        sse(log="  官方源不通，走 npm…", cls="dim")
+        pass
+    if official_ok:
+        return
+    sse(log=_t("官方源连不上（没翻墙也没关系），改用 npm 国内镜像…",
+               "Official source unreachable (no VPN needed) — using the npm China mirror…"), cls="dim")
     _npm_global("@openai/codex", sse)
 
 
