@@ -1469,10 +1469,27 @@ def _which(cmd):
 def _download(url, dest, timeout=60):
     """Download url to dest with a bounded per-read timeout. urllib's
     urlretrieve takes NO timeout and hangs forever on a stalled connection,
-    which would freeze the installer with no error."""
+    which would freeze the installer with no error. Stream in chunks and emit a
+    `tick` heartbeat every ~3s so a big file (Node zip, MSI) keeps the elapsed
+    timer alive instead of looking frozen."""
     import urllib.request as _ur
+    sse = _ACTIVE_SSE
+    t0 = time.time()
+    last_beat = 0.0
     with _ur.urlopen(url, timeout=timeout) as r, open(dest, "wb") as f:
-        shutil.copyfileobj(r, f)
+        while True:
+            chunk = r.read(65536)
+            if not chunk:
+                break
+            f.write(chunk)
+            if sse:
+                el = time.time() - t0
+                if el - last_beat >= 3:
+                    last_beat = el
+                    try:
+                        sse(tick=round(el))
+                    except Exception:
+                        pass
 
 
 def _refresh_windows_path():
@@ -1575,13 +1592,22 @@ def _await_with_tick(fn, timeout=120):
     t0 = time.time()
     th.start()
     sse = _ACTIVE_SSE
+    last_beat = 0.0
     while True:
         th.join(timeout=2.0)
         if not th.is_alive():
             break
         if sse:
+            el = time.time() - t0
             try:
-                sse(tick=round(time.time() - t0))
+                sse(tick=round(el))
+                # Move the log body too, not just the elapsed label: a long quiet
+                # wait (vendor ping, proxy start) otherwise looks frozen even
+                # while the timer ticks. A dim line every ~12s shows it's alive.
+                if el - last_beat >= 12:
+                    last_beat = el
+                    sse(log=_t(f"  …还在等响应，请稍候（已 {round(el)}s）",
+                               f"  …still waiting for a response ({round(el)}s)"), cls="dim")
             except Exception:
                 pass
         if time.time() - t0 > timeout + 10:
@@ -1618,13 +1644,23 @@ def _run(cmd, **kw):
     t0 = time.time()
     th.start()
     sse = _ACTIVE_SSE
+    last_beat = 0.0
     while True:
         th.join(timeout=2.0)
         if not th.is_alive():
             break
         if sse:
+            el = time.time() - t0
             try:
-                sse(tick=round(time.time() - t0))
+                sse(tick=round(el))
+                # The elapsed label ticks, but a slow npm/brew step prints
+                # nothing, so the log body looks frozen ("卡住了"). Emit a dim
+                # heartbeat line every ~12s so the user can see it's still going.
+                if el - last_beat >= 12:
+                    last_beat = el
+                    sse(log=_t(f"  …还在装，请稍候（已 {round(el)}s，首次装要下依赖）",
+                               f"  …still installing, please wait ({round(el)}s; first install pulls deps)"),
+                        cls="dim")
             except Exception:
                 pass
     if "e" in box:
@@ -1641,6 +1677,10 @@ def _run(cmd, **kw):
 
 # China mirror for Homebrew bottles/formulae (USTC) and npm (npmmirror).
 NPM_MIRROR = "https://registry.npmmirror.com"
+# China-hosted GitHub proxies. They fetch the asset from GitHub server-side, so
+# the user never needs direct github.com access (which we must assume may be
+# blocked). Always tried before any direct github.com URL.
+GH_PROXIES = ("https://ghfast.top/", "https://gh-proxy.com/", "https://ghproxy.net/")
 
 
 def _brew_env():
@@ -1886,8 +1926,10 @@ def _gh_latest_version():
     the old code hard-coded gh_2.55.0 under .../latest/download/, which 404s as
     soon as latest moves past that version."""
     import urllib.request as _ur
-    for u in ("https://api.github.com/repos/cli/cli/releases/latest",
-              "https://gh-proxy.com/https://api.github.com/repos/cli/cli/releases/latest"):
+    # CN proxies first (direct api.github.com may be blocked entirely), official
+    # API last.
+    api = "https://api.github.com/repos/cli/cli/releases/latest"
+    for u in tuple(p + api for p in GH_PROXIES) + (api,):
         try:
             req = _ur.Request(u, headers={"User-Agent": "coding-agent-go"})
             with _ur.urlopen(req, timeout=20) as r:
@@ -1947,7 +1989,7 @@ def _install_gh(sse):
                 f"v{ver}/gh_{ver}_windows_amd64.msi")
         msi = Path(tempfile.gettempdir()) / "gh-amd64.msi"
         ok = False
-        for m in ("https://gh-proxy.com/" + base, "https://ghfast.top/" + base, base):
+        for m in tuple(p + base for p in GH_PROXIES) + (base,):
             host = m.split("//", 1)[-1].split("/", 1)[0]
             try:
                 sse(log=f"  下载 gh {ver} ({host}) …", cls="dim")
@@ -2395,17 +2437,17 @@ def _install_codex(sse):
 # Codex → mimo2codex proxy steps
 # ═══════════════════════════════════════════════════════════════════════════════
 def _seed_better_sqlite3_prebuild(sse, log_text):
-    """mimo2codex depends on better-sqlite3 (native). In China its prebuilt
-    binary times out downloading from GitHub releases, and there's no compiler
-    (Visual Studio) to fall back to, so the install fails. prebuild-install logs
-    the exact cache path it wants ("cached prebuild @ ...<asset>.tar.gz"); parse
-    it from the failed run, fill that file from a fast CN GitHub proxy, and the
-    retry uses the cached binary — no GitHub round-trip, no compiler. Returns
-    True if a prebuilt was placed. Best-effort, Windows-only."""
-    if not IS_WIN:
-        return False
-    m = re.search(r"cached prebuild @ (.+?better-sqlite3-v[\d.]+-node-v\d+-win32-x64\.tar\.gz)",
-                  log_text)
+    """mimo2codex depends on better-sqlite3 (native). Its prebuilt binary is
+    downloaded from GitHub releases, which is slow or fully blocked behind the
+    GFW, and without a compiler there's no source-build fallback — so the
+    install fails. prebuild-install logs the exact cache path it wants ("cached
+    prebuild @ ...<asset>.tar.gz"); parse it from the failed run, fill that file
+    from a China GitHub proxy (works even with zero direct GitHub access), and
+    the retry uses the cached binary. Returns True if a prebuilt was placed.
+    Best-effort, all platforms (win32 / darwin / linux, x64 / arm64)."""
+    m = re.search(
+        r"cached prebuild @ (.+?better-sqlite3-v[\d.]+-node-v\d+-[a-z0-9]+-[a-z0-9]+\.tar\.gz)",
+        log_text)
     if not m:
         _dbg("seed: no prebuild cache path in npm output")
         return False
@@ -2420,12 +2462,14 @@ def _seed_better_sqlite3_prebuild(sse, log_text):
         cache_path.parent.mkdir(parents=True, exist_ok=True)
     except Exception:
         return False
-    for host in ("https://ghfast.top/", "https://gh-proxy.com/", ""):
+    # CN proxies first; direct github.com last (it may be blocked entirely).
+    for host in GH_PROXIES + ("",):
         try:
-            sse(log="  预取 better-sqlite3 预编译包（避免编译/超时）…", cls="dim")
+            sse(log=_t("  预取 better-sqlite3 预编译包（避免编译/超时）…",
+                       "  Prefetching the better-sqlite3 prebuilt (avoids a slow build)…"), cls="dim")
             _download(host + gh, cache_path, timeout=120)
             if cache_path.exists() and cache_path.stat().st_size > 1000:
-                sse(log="  better-sqlite3 预编译包就绪", cls="ok")
+                sse(log=_t("  better-sqlite3 预编译包就绪", "  better-sqlite3 prebuilt ready"), cls="ok")
                 return True
         except Exception as e:
             _dbg(f"seed download via {host or 'direct'} failed: {e}")
@@ -2439,24 +2483,24 @@ def _install_m2c(sse):
         sse(log=_t("  已检测到 mimo2codex，跳过安装", "  mimo2codex already present, skipping"), cls="dim")
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
-    if IS_WIN:
-        # Capture the first attempt: if better-sqlite3's prebuilt can't be
-        # fetched, pre-seed it from a CN proxy (see above) and retry once.
-        cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
-        cmd = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
-               "--cache", cache, "--foreground-scripts", "--registry", NPM_MIRROR]
-        r = _run(cmd, check=False, text=True, timeout=240)
-        if r.returncode == 0:
-            _refresh_windows_path()
-            return
-        out = (r.stdout or "") + (r.stderr or "")
-        if _seed_better_sqlite3_prebuild(sse, out):
-            _run(cmd, timeout=240)
-            _refresh_windows_path()
-            return
-        raise Exception("mimo2codex 安装失败：better-sqlite3 预编译包获取失败（见调试日志）")
-    _npm_global("mimo2codex", sse)
-    _refresh_windows_path()
+    # better-sqlite3's prebuilt is pulled from GitHub releases — slow or blocked
+    # behind the GFW. Capture the first attempt; if the prebuilt can't be
+    # fetched, pre-seed it from a CN GitHub proxy (see _seed_…) and retry once.
+    # Same on every OS — we assume the user may have no GitHub access at all.
+    cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
+    cmd = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
+           "--cache", cache, "--foreground-scripts", "--registry", NPM_MIRROR]
+    r = _run(cmd, check=False, text=True, timeout=300)
+    if r.returncode == 0:
+        _refresh_windows_path()
+        return
+    out = (r.stdout or "") + (r.stderr or "")
+    if _seed_better_sqlite3_prebuild(sse, out):
+        _run(cmd, timeout=300)
+        _refresh_windows_path()
+        return
+    raise Exception(_t("mimo2codex 安装失败：better-sqlite3 预编译包获取失败（见调试日志）",
+                       "mimo2codex install failed: couldn't fetch the better-sqlite3 prebuilt (see debug log)"))
 
 
 def _mimo2codex_script():

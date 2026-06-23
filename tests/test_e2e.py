@@ -449,6 +449,35 @@ class UnitTest(unittest.TestCase):
         self.assertIn("余额", server._friendly_upstream_error(200, "insufficient balance"))
         self.assertIn("API Key", server._friendly_upstream_error(401, ""))
 
+    def test_better_sqlite3_seed_all_platforms(self):
+        """The better-sqlite3 prebuilt seed must work on darwin/linux/win and
+        fetch via a CN GitHub proxy first (the user may have no GitHub access)."""
+        sys.path.insert(0, str(PROJECT_DIR))
+        import server
+        captured = {}
+
+        def fake_download(url, dest, timeout=60):
+            captured["url"] = url
+            Path(dest).parent.mkdir(parents=True, exist_ok=True)
+            Path(dest).write_bytes(b"x" * 2000)  # > 1000 bytes => "placed"
+
+        orig = server._download
+        server._download = fake_download
+        try:
+            for asset in ("a1-better-sqlite3-v12.11.1-node-v137-darwin-arm64.tar.gz",
+                          "b2-better-sqlite3-v12.11.1-node-v127-linux-x64.tar.gz",
+                          "c3-better-sqlite3-v12.11.1-node-v137-win32-x64.tar.gz"):
+                captured.clear()
+                log = f"prebuild-install warn install looking for cached prebuild @ /tmp/c/_prebuilds/{asset}"
+                ok = server._seed_better_sqlite3_prebuild(lambda **k: None, log)
+                self.assertTrue(ok, f"seed should place a prebuilt for {asset}")
+                self.assertTrue(captured["url"].startswith(server.GH_PROXIES[0]),
+                                f"must try a CN proxy first, got {captured['url']}")
+                self.assertIn("WiseLibs/better-sqlite3/releases/download/v12.11.1", captured["url"])
+                self.assertTrue(captured["url"].endswith(asset.split("-", 1)[1]), captured["url"])
+        finally:
+            server._download = orig
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
