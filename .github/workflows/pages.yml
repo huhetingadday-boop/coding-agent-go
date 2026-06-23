@@ -1,0 +1,38 @@
+name: pages
+
+# Publishes the download landing page (docs/) to GitHub Pages, giving the
+# zero-terminal installers a clean, shareable URL:
+#   https://huhetingadday-boop.github.io/coding-agent-go/
+#
+# One-time setup: repo Settings -> Pages -> Source -> "GitHub Actions".
+# (The same page is also reachable via jsDelivr without any setup:
+#  https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/docs/index.html)
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
