@@ -47,14 +47,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # "AI Coding Installer" so Finder/the taskbar read it as a run-once
+          # installer, not an app to keep around.
           if [ "$RUNNER_OS" = "Windows" ]; then
             # --windowed = no console; one file. The UI is the WebView2 window.
-            pyinstaller --onefile --windowed --name coding-agent-go \
+            pyinstaller --onefile --windowed --name "AI Coding Installer" \
               --add-data "providers.json;." server.py
           else
             # --windowed makes a real .app bundle so Finder runs it on double
             # click; the UI is the WKWebView window.
-            pyinstaller --windowed --name coding-agent-go \
+            pyinstaller --windowed --name "AI Coding Installer" \
               --add-data "providers.json:." server.py
           fi
       - name: Package + checksum
@@ -63,7 +65,8 @@ jobs:
           set -euo pipefail
           cd dist
           if [ "$RUNNER_OS" = "Windows" ]; then
-            mv coding-agent-go.exe coding-agent-go-windows.exe
+            # Stable, URL-safe asset name for the download links.
+            mv "AI Coding Installer.exe" coding-agent-go-windows.exe
             sha256sum coding-agent-go-windows.exe > coding-agent-go-windows.exe.sha256
           else
             # The app IS the installer (run-once: it installs the CLIs), so the
@@ -72,7 +75,7 @@ jobs:
             # can coexist on the release.
             dmg="coding-agent-go-${TARGET}.dmg"
             mkdir -p dmgroot
-            cp -R coding-agent-go.app dmgroot/
+            cp -R "AI Coding Installer.app" dmgroot/
             hdiutil create -volname "AI Coding Installer" -srcfolder dmgroot \
               -fs HFS+ -ov -format UDZO "$dmg"
             shasum -a 256 "$dmg" > "$dmg.sha256"

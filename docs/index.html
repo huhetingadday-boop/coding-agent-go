@@ -53,6 +53,11 @@ h1{font-size:25px;margin:0;letter-spacing:-.4px}
   padding:13px 16px;font-weight:700;font-size:15px;margin-top:12px}
 .btn-pri{background:var(--brand);color:#fff}
 .btn-pri:hover{background:var(--brand-dim)}
+.seg{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:999px;padding:4px;margin:2px 0 4px}
+.seg-btn{flex:1;border:0;background:transparent;color:var(--text2);font:inherit;font-size:13px;
+  font-weight:600;padding:8px 8px;border-radius:999px;cursor:pointer;transition:background .12s}
+.seg-btn.active{background:var(--brand);color:#fff}
 .mirrors{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
 .mirrors a{flex:1;min-width:84px;text-align:center;text-decoration:none;font-size:12.5px;
   color:var(--text2);background:var(--surface2);border:1px solid var(--border);
@@ -106,16 +111,15 @@ footer a{color:var(--brand-dim)}
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 1.3c.1 1-.3 2-.9 2.8-.7.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.6-.8 1.7-1.3 2.6-1.4zM19 17.2c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.5-3.7-2.9C1 17.1.7 12.5 2.3 10c.9-1.4 2.4-2.3 3.9-2.3 1.5 0 2.5 1 3.7 1 1.2 0 2-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.9 7.7z"/></svg>
       macOS
     </div>
-    <div class="arch" data-i="macArch">选你的芯片（不确定就点屏幕左上角  →「关于本机」看「芯片」一栏）</div>
-    <a class="btn btn-pri" id="dl-mac-arm" data-i="dlMacArm" href="#">Apple 芯片 (M1/M2/M3/M4) · 下载 .dmg</a>
-    <div class="mirrors">
-      <a id="mac-arm-m2" href="#" data-i="mirror2">备用镜像</a>
-      <a id="mac-arm-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
+    <div class="arch" data-i="macArch">选你的芯片（不确定就点屏幕左上角  →「关于本机」看「芯片」）</div>
+    <div class="seg" id="mac-seg">
+      <button type="button" class="seg-btn active" data-arch="arm64" data-i="segArm">Apple 芯片 (M1–M4)</button>
+      <button type="button" class="seg-btn" data-arch="intel" data-i="segIntel">Intel 芯片</button>
     </div>
-    <a class="btn btn-pri" id="dl-mac-intel" data-i="dlMacIntel" href="#" style="margin-top:6px">Intel 芯片 · 下载 .dmg</a>
+    <a class="btn btn-pri" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
     <div class="mirrors">
-      <a id="mac-intel-m2" href="#" data-i="mirror2">备用镜像</a>
-      <a id="mac-intel-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
+      <a id="mac-m2" href="#" data-i="mirror2">备用镜像</a>
+      <a id="mac-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
     </div>
     <div class="note" data-i="macNote">双击运行会打开一个安装窗口，跟着走就行。</div>
   </div>
@@ -204,8 +208,21 @@ function setLinks(btn,m2,gh,asset){
   if((el=document.getElementById(m2))) el.href=GHFAST+direct;
   if((el=document.getElementById(gh))) el.href=direct;
 }
-setLinks("dl-mac-arm","mac-arm-m2","mac-arm-gh",MAC_ARM);
-setLinks("dl-mac-intel","mac-intel-m2","mac-intel-gh",MAC_INTEL);
+// macOS: one button + a chip toggle; the download links follow the chosen chip
+// (the web can't reliably detect Apple Silicon vs Intel, so the user picks).
+var macArch="arm64";
+function updateMac(){ setLinks("dl-mac","mac-m2","mac-gh", macArch==="intel"?MAC_INTEL:MAC_ARM); }
+(function(){
+  var seg=document.getElementById("mac-seg");
+  if(seg) seg.addEventListener("click",function(e){
+    var b=e.target.closest(".seg-btn"); if(!b) return;
+    macArch=b.getAttribute("data-arch");
+    var bs=seg.querySelectorAll(".seg-btn");
+    for(var i=0;i<bs.length;i++) bs[i].classList.toggle("active", bs[i]===b);
+    updateMac();
+  });
+  updateMac();
+})();
 // Windows keeps its 国内镜像(gh-proxy) / 备用(ghfast) / 直连 trio.
 setLinks("dl-win","win-m2","win-gh",WIN);
 document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
@@ -229,15 +246,15 @@ var I={
     lead:"下载安装包，双击就能装好 Claude Code / Codex / Gemini，并接上国产大模型。不用敲命令，不用翻墙。",
     yourSystem:"你的系统",
     macArch:"选你的芯片（不确定就点屏幕左上角  →「关于本机」看「芯片」）", winArch:"Windows 10 / 11 (64 位) · .exe",
-    dlMacArm:"Apple 芯片 (M1/M2/M3/M4) · 下载 .dmg", dlMacIntel:"Intel 芯片 · 下载 .dmg", dlWin:"下载 Windows 版 (.exe)",
+    dlMac:"下载 .dmg", segArm:"Apple 芯片 (M1–M4)", segIntel:"Intel 芯片", dlWin:"下载 Windows 版 (.exe)",
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
     openTitle:"打不开 / 提示有风险？",
     macOpenSum:"macOS：提示「无法打开，来自身份不明的开发者」",
     macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：",
-    macStep1:"把 .dmg 里的应用拖进「应用程序」。",
-    macStep2:"在「应用程序」里 右键点它 → 打开，再在弹窗里点「打开」。",
+    macStep1:"打开下载好的 .dmg。",
+    macStep2:"右键点里面的「AI Coding Installer」→「打开」，再点一次「打开」（不用拖进「应用程序」，跑一次就行）。",
     macStep3:"还不行就去「系统设置 → 隐私与安全性」，找到拦截提示点「仍要打开」。",
     winOpenSum:"Windows：SmartScreen 蓝框 / 杀软拦截",
     winStep1:"SmartScreen 蓝框：点「更多信息」→「仍要运行」。",
@@ -257,15 +274,15 @@ var I={
     lead:"Download the installer and double-click to set up Claude Code / Codex / Gemini on China LLMs. No commands, no VPN.",
     yourSystem:"Your system",
     macArch:"Pick your chip (Apple menu  → About This Mac → “Chip”)", winArch:"Windows 10 / 11 (64-bit) · .exe",
-    dlMacArm:"Apple Silicon (M1/M2/M3/M4) · .dmg", dlMacIntel:"Intel chip · .dmg", dlWin:"Download for Windows (.exe)",
+    dlMac:"Download .dmg", segArm:"Apple Silicon (M1–M4)", segIntel:"Intel", dlWin:"Download for Windows (.exe)",
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
     openTitle:"Won't open / flagged as risky?",
     macOpenSum:"macOS: “can’t be opened — unidentified developer”",
     macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open:",
-    macStep1:"Drag AI Coding Go from the .dmg into Applications.",
-    macStep2:"In Applications, right-click it → Open, then click Open in the dialog.",
+    macStep1:"Open the downloaded .dmg.",
+    macStep2:"Right-click “AI Coding Installer” inside → Open, then click Open again (no need to move it to Applications — it's run-once).",
     macStep3:"Still blocked? System Settings → Privacy & Security → “Open Anyway”.",
     winOpenSum:"Windows: SmartScreen blue box / antivirus block",
     winStep1:"SmartScreen: click “More info” → “Run anyway”.",
