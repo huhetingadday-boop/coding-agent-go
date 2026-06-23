@@ -1898,32 +1898,50 @@ def _install_brew(sse):
         return
     env = os.environ.copy()
     env.update({
+        # Clone Homebrew + pull formulae/bottles from USTC, not GitHub — the
+        # official remotes are slow or blocked without a VPN. install.sh and brew
+        # both honor these env vars, so the whole install stays inside China.
         "HOMEBREW_BREW_GIT_REMOTE": "https://mirrors.ustc.edu.cn/brew.git",
         "HOMEBREW_CORE_GIT_REMOTE": "https://mirrors.ustc.edu.cn/homebrew-core.git",
         "HOMEBREW_BOTTLE_DOMAIN": "https://mirrors.ustc.edu.cn/homebrew-bottles",
         "HOMEBREW_API_DOMAIN": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
         "NONINTERACTIVE": "1",
     })
-    sse(log="走官方源…", cls="dim")
-    ok = False
+    # Fetch the official install.sh from whichever source is reachable. CN
+    # sources first (jsDelivr, then GitHub proxies) — raw.githubusercontent is
+    # often blocked — direct raw last.
+    raw = "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+    sources = (["https://cdn.jsdelivr.net/gh/Homebrew/install@HEAD/install.sh"]
+               + [p + raw for p in GH_PROXIES] + [raw])
+    script = None
+    for u in sources:
+        host = u.split("//", 1)[-1].split("/", 1)[0]
+        try:
+            p = subprocess.run(["curl", "-fsSL", "--connect-timeout", "8", u],
+                               capture_output=True, timeout=30)
+            if p.returncode == 0 and p.stdout:
+                script = p.stdout
+                sse(log=_t(f"安装脚本来自 {host}", f"Install script from {host}"), cls="dim")
+                break
+        except Exception:
+            continue
+    if not script:
+        raise Exception(_t("拿不到 Homebrew 安装脚本（多个源都不通）",
+                           "Couldn't fetch the Homebrew install script (all sources failed)"))
+    sse(log=_t("正在装 Homebrew（从 USTC 国内镜像克隆，需要几分钟）…",
+               "Installing Homebrew (cloning from the USTC China mirror, a few minutes)…"), cls="dim")
+    # Run under the heartbeat (_run) so the bar shows elapsed time during the
+    # multi-minute clone. check=False: install.sh can exit non-zero on warnings
+    # yet still have installed brew — so judge success by brew's actual presence.
     try:
-        p = subprocess.run(
-            ["curl", "-fsSL", "--connect-timeout", "8",
-             "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"],
-            capture_output=True, timeout=30)
-        if p.returncode == 0:
-            subprocess.run(["bash"], input=p.stdout, capture_output=True, timeout=300, env=env)
-            ok = True
-    except Exception:
-        pass
-    if not ok:
-        sse(log=_t("换国内源…", "Switching to a China mirror…"), cls="dim")
-        _run(["bash", "-c",
-              "curl -fsSL https://cdn.jsdelivr.net/gh/Homebrew/install@HEAD/install.sh | bash"],
-             timeout=300, env=env)
+        _run(["bash"], input=script, env=env, check=False, timeout=1200)
+    except Exception as e:
+        _dbg(f"brew install.sh run error: {e}")
     _ensure_brew_path()
-    if not ok:
-        raise Exception("Homebrew 安装失败 — https://brew.sh")
+    if not _which("brew"):
+        raise Exception(_t("Homebrew 没装上 — 网络太慢或缺少 Xcode 命令行工具，可手动安装后重试：https://brew.sh",
+                           "Homebrew did not install — slow network or missing Xcode CLT; install it manually and retry: https://brew.sh"))
+    sse(log=_t("  Homebrew 就绪 ✓", "  Homebrew ready ✓"), cls="ok")
 
 
 def _win_allow_scripts(sse):
