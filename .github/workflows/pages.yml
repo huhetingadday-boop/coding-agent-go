@@ -5,8 +5,9 @@ name: pages
 #   https://huhetingadday-boop.github.io/coding-agent-go/
 #
 # One-time setup: repo Settings -> Pages -> Source -> "GitHub Actions".
-# (The same page is also reachable via jsDelivr without any setup:
-#  https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/docs/index.html)
+# Until Pages is enabled, the README download section + the direct
+# releases/latest/download/... links are the zero-setup path. (jsDelivr serves
+# .html as text/plain, so it can't *render* this page — Pages is required.)
 on:
   push:
     branches: [main]
