@@ -5,8 +5,13 @@ name: build-release
 # the primary path; these binaries are the zero-terminal option for true
 # non-technical users. Each artifact ships a SHA-256 so users can verify it.
 #
-#   Windows -> coding-agent-go-windows.exe   (one-file console app)
-#   macOS   -> coding-agent-go-macos.dmg     (.app bundle, drag to Applications)
+# The apps embed a native webview (pywebview: WKWebView on macOS, WebView2 on
+# Windows), so the UI opens in its own window — it feels like an app, not a
+# browser tab, and closing the window quits cleanly.
+#
+#   Windows      -> coding-agent-go-windows.exe      (windowed, WebView2)
+#   macOS arm64  -> coding-agent-go-macos-arm64.dmg  (Apple Silicon, .app)
+#   macOS intel  -> coding-agent-go-macos-intel.dmg  (Intel x86_64, .app)
 on:
   push:
     tags: ['v*']
@@ -19,28 +24,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            target: windows
+          - os: macos-latest      # Apple Silicon runner -> arm64 build
+            target: macos-arm64
+          - os: macos-13          # Intel runner -> x86_64 build
+            target: macos-intel
     runs-on: ${{ matrix.os }}
+    env:
+      TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install PyInstaller
-        run: python -m pip install --upgrade pip pyinstaller
-      - name: Build (Windows .exe / macOS .app)
+      - name: Install build deps
+        # pywebview pulls the platform webview backend (pyobjc on macOS,
+        # pythonnet/WebView2 interop on Windows). PyInstaller bundles it.
+        run: python -m pip install --upgrade pip pyinstaller pywebview
+      - name: Build (embedded-webview app)
         shell: bash
         run: |
           set -euo pipefail
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # One-file console app: the console window doubles as a live log if
-            # the browser fails to open.
-            pyinstaller --onefile --name coding-agent-go \
+            # --windowed = no console; one file. The UI is the WebView2 window.
+            pyinstaller --onefile --windowed --name coding-agent-go \
               --add-data "providers.json;." server.py
           else
             # --windowed makes a real .app bundle so Finder runs it on double
-            # click (a bare unix binary won't). server.py opens the browser
-            # itself right after it binds the socket.
+            # click; the UI is the WKWebView window.
             pyinstaller --windowed --name coding-agent-go \
               --add-data "providers.json:." server.py
           fi
@@ -53,19 +66,20 @@ jobs:
             mv coding-agent-go.exe coding-agent-go-windows.exe
             sha256sum coding-agent-go-windows.exe > coding-agent-go-windows.exe.sha256
           else
-            # Wrap the .app in a .dmg with a drag-to-Applications shortcut — the
-            # familiar macOS install gesture. Built on the Apple-Silicon runner,
-            # so the .dmg targets M-series Macs; Intel users use the one-liner.
+            # The app IS the installer (run-once: it installs the CLIs), so the
+            # .dmg just holds the app to double-click — no drag-to-Applications
+            # step. Name by arch ($TARGET = macos-arm64 | macos-intel) so both
+            # can coexist on the release.
+            dmg="coding-agent-go-${TARGET}.dmg"
             mkdir -p dmgroot
             cp -R coding-agent-go.app dmgroot/
-            ln -s /Applications dmgroot/Applications
-            hdiutil create -volname "AI Coding Go" -srcfolder dmgroot \
-              -fs HFS+ -ov -format UDZO coding-agent-go-macos.dmg
-            shasum -a 256 coding-agent-go-macos.dmg > coding-agent-go-macos.dmg.sha256
+            hdiutil create -volname "AI Coding Installer" -srcfolder dmgroot \
+              -fs HFS+ -ov -format UDZO "$dmg"
+            shasum -a 256 "$dmg" > "$dmg.sha256"
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.os }}
+          name: build-${{ matrix.target }}
           path: |
             dist/coding-agent-go-*.exe
             dist/coding-agent-go-*.dmg
