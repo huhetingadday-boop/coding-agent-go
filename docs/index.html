@@ -278,8 +278,8 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
 </div>
 
 <!-- first-open guide: revealed + scrolled-to the moment a download is clicked -->
-<section id="firstrun" class="firstrun">
-  <div class="fr-head"><span class="fr-check">✓</span> <b data-i="frTitle">第一次打开会被系统拦一下，这样放行（只需一次）</b></div>
+<section id="firstrun" class="firstrun" hidden>
+  <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">下载好了！第一次打开会被系统拦一下，这样放行（只需一次）</b></div>
   <div class="fr-os" id="fr-mac">
     <div class="dlg dlg-mac">
       <div class="dlg-ico">⚠️</div>
@@ -406,24 +406,21 @@ document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
     cards.prepend(document.getElementById("card-mac"));}
 })();
 
-// First-open guide: always visible and pre-set to the visitor's OS (with a mock
-// of the actual dialog), so the Gatekeeper/SmartScreen prompt is never a
-// surprise. Clicking a download link nudges it (scroll + pulse) and switches OS.
+// First-open guide: hidden until a download link is clicked, then it reveals the
+// steps for that card's OS (with a mock of the actual dialog), scrolls to them
+// and pulses — so the Gatekeeper/SmartScreen prompt is never a surprise.
 (function(){
   var fr=document.getElementById("firstrun");
-  function show(os,nudge){
+  function show(os){
     document.getElementById("fr-mac").hidden = (os!=="mac");
     document.getElementById("fr-win").hidden = (os!=="win");
-    if(nudge){
-      fr.scrollIntoView({behavior:"smooth",block:"center"});
-      fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
-    }
+    fr.hidden=false;
+    fr.scrollIntoView({behavior:"smooth",block:"center"});
+    fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
   }
-  var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
-  show(/Windows|Win64|Win32/i.test(ua) ? "win" : "mac", false);  // default mac
   var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
-  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac",true); });
-  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win",true); });
+  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
+  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
 })();
 
 // ── i18n ──
@@ -438,7 +435,7 @@ var I={
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
     ebHelp:"遇到问题", ebCli:"进阶",
-    frTitle:"第一次打开会被系统拦一下，这样放行（只需一次）",
+    frTitle:"下载好了！第一次打开会被系统拦一下，这样放行（只需一次）",
     dlgMacT:"无法打开「Coding Agent Installer」", dlgMacS:"Apple 无法验证此 App 是否含有恶意软件。",
     dlgMacOk:"完成", dlgMacNo:"移到废纸篓", dlgTagOk:"✓ 点这个", dlgTagNo:"✗ 别点（默认高亮的是它）",
     dlgWinT:"Windows 已保护你的电脑", dlgWinS:"Microsoft Defender SmartScreen 阻止了无法识别的应用启动。",
@@ -448,7 +445,7 @@ var I={
     mockOpen:"仍要打开", mockRun:"仍要运行",
     frFoot:"弹这个不是软件有问题：本项目免费开源，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。",
     openTitle:"按上面放行还是不行？",
-    helpLead:"首次打开的放行步骤就在上面那个「第一次打开会被系统拦一下」的框里（macOS 和 Windows 都配了图示）。照着做完还卡住，再看这里：",
+    helpLead:"点上面的「下载」按钮后，上方会弹出首次打开的放行步骤（带弹窗图示，macOS 和 Windows 都有）。照着做完还卡住，再看这里：",
     macStuckSum:"macOS：照着做了还是打不开",
     macStuck1:"先确认上一步点的是「完成」而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。",
     macStuck2:"在「系统设置 → 隐私与安全性」最下面找「仍要打开」。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。",
@@ -474,7 +471,7 @@ var I={
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
     ebHelp:"Troubleshooting", ebCli:"Advanced",
-    frTitle:"The OS blocks the first open — here's how to allow it (just once)",
+    frTitle:"Downloaded! The OS blocks the first open — here's how to allow it (just once)",
     dlgMacT:"“Coding Agent Installer” Not Opened", dlgMacS:"Apple could not verify this app is free of malware.",
     dlgMacOk:"Done", dlgMacNo:"Move to Trash", dlgTagOk:"✓ click this", dlgTagNo:"✗ not this (it's the default highlight)",
     dlgWinT:"Windows protected your PC", dlgWinS:"Microsoft Defender SmartScreen prevented an unrecognized app from starting.",
@@ -484,7 +481,7 @@ var I={
     mockOpen:"Open Anyway", mockRun:"Run anyway",
     frFoot:"This isn't a problem with the app: it's a free open-source project that hasn't paid Apple/Microsoft's signing “tax” ($99/yr for Apple), so the OS warns once. Allow it once and it's fine — it's safe.",
     openTitle:"Still won't open after allowing it?",
-    helpLead:"The first-open steps are in the “The OS blocks the first open” box above (with a picture for both macOS and Windows). If you did that and it's still stuck, look here:",
+    helpLead:"After you click a “Download” button above, the first-open steps appear there (with a picture of the dialog, for both macOS and Windows). If you did that and it's still stuck, look here:",
     macStuckSum:"macOS: did the steps but still won't open",
     macStuck1:"First make sure you clicked “Done”, not “Move to Trash”. If it went to Trash, restore it from Trash or download again.",
     macStuck2:"In System Settings → Privacy & Security, the “Open Anyway” button is at the bottom. Don't see it? Double-click the installer once more so it re-prompts, and the button appears.",
