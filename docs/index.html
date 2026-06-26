@@ -150,6 +150,32 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
   color:var(--brand-ink);font-weight:700;font-size:12.5px;padding:3px 12px;border-radius:7px;white-space:nowrap;
   box-shadow:0 0 0 2px var(--glow),0 4px 12px -5px rgba(224,128,79,.8)}
 .fr-foot{margin-top:13px;font-size:12px;color:var(--ink3)}
+.fr-intro{font-size:13.5px;color:var(--ink2);margin:0 0 12px}
+.fr-intro b{color:var(--ink)}
+/* a mock of the real OS dialog so users recognize the box on their screen */
+.fr-os{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.fr-os .steps{flex:1;min-width:240px;flex-direction:column}
+.fr-os .steps li{min-width:0}
+.dlg{flex:0 0 264px;max-width:264px;border-radius:13px;padding:15px 15px 13px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#ece8e1;border:1px solid rgba(0,0,0,.16);color:#26221d;
+  box-shadow:0 16px 40px -16px rgba(0,0,0,.55);text-align:center}
+.dlg-ico{font-size:28px;line-height:1}
+.dlg-t{font-weight:700;font-size:13px;margin:7px 0 3px;line-height:1.3}
+.dlg-s{font-size:10.5px;color:#6b655d;line-height:1.45;margin-bottom:12px}
+.dlg-btns{display:flex;gap:8px;justify-content:center}
+.dlg-b{font-size:12px;padding:5px 13px;border-radius:7px;font-weight:600;position:relative}
+.dlg-b.ok{background:#fff;border:1px solid rgba(0,0,0,.2);color:#26221d;
+  box-shadow:0 0 0 2px #1f8a4c}
+.dlg-b.danger{background:#5b554d;color:#fff}
+.dlg-tags{display:flex;gap:8px;justify-content:center;margin-top:9px;font-size:10.5px;font-weight:700}
+.tag-ok{color:#1f8a4c}
+.tag-no{color:#c0392b}
+.dlg-win{background:#fbfbf9;text-align:left}
+.dlg-win .dlg-t{font-size:13.5px;margin-top:0}
+.dlg-win .dlg-s{text-align:left}
+.dlg-link{font-size:11.5px;color:#2563c9;font-weight:600;text-decoration:underline;margin-bottom:11px}
+.dlg-win .dlg-btns{justify-content:flex-end}
 
 /* ── sections ── */
 .block{margin-top:48px}
@@ -252,42 +278,63 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
 </div>
 
 <!-- first-open guide: revealed + scrolled-to the moment a download is clicked -->
-<section id="firstrun" class="firstrun" hidden>
-  <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">下载中…第一次打开这样放行（只需一次）</b></div>
-  <ol class="steps" id="fr-mac">
-    <li><span class="num">1</span><span data-i="frMac1">弹出「无法打开」时，点 <b>「完成」</b>（<b>千万别点「移到废纸篓」</b>）</span></li>
-    <li><span class="num">2</span><span data-i="frMac2">打开 <b>系统设置 → 隐私与安全性</b>，拉到最下面</span></li>
-    <li><span class="num">3</span><span data-i="frMac3">找到拦截提示，点</span> <span class="mockbtn" data-i="mockOpen">仍要打开</span> <span data-i="frMac3b">，再确认一次</span></li>
-  </ol>
-  <ol class="steps" id="fr-win" hidden>
-    <li><span class="num">1</span><span data-i="frWin1">蓝框「Windows 已保护你的电脑」</span></li>
-    <li><span class="num">2</span><span data-i="frWin2">点蓝框里的 <b>「更多信息」</b></span></li>
-    <li><span class="num">3</span><span data-i="frWin3">再点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
-  </ol>
+<section id="firstrun" class="firstrun">
+  <div class="fr-head"><span class="fr-check">✓</span> <b data-i="frTitle">第一次打开会被系统拦一下，这样放行（只需一次）</b></div>
+  <div class="fr-os" id="fr-mac">
+    <div class="dlg dlg-mac">
+      <div class="dlg-ico">⚠️</div>
+      <div class="dlg-t" data-i="dlgMacT">无法打开「Coding Agent Installer」</div>
+      <div class="dlg-s" data-i="dlgMacS">Apple 无法验证此 App 是否含有恶意软件。</div>
+      <div class="dlg-btns">
+        <span class="dlg-b ok" data-i="dlgMacOk">完成</span>
+        <span class="dlg-b danger" data-i="dlgMacNo">移到废纸篓</span>
+      </div>
+      <div class="dlg-tags"><span class="tag-ok" data-i="dlgTagOk">✓ 点这个</span><span class="tag-no" data-i="dlgTagNo">✗ 别点（默认高亮的是它）</span></div>
+    </div>
+    <ol class="steps">
+      <li><span class="num">1</span><span data-i="frMac1">双击后跳出上面这个框，点 <b>「完成」</b>（<b>千万别点「移到废纸篓」</b>）</span></li>
+      <li><span class="num">2</span><span data-i="frMac2">打开 <b>系统设置 → 隐私与安全性</b>，拉到最下面</span></li>
+      <li><span class="num">3</span><span data-i="frMac3">找到拦截提示，点</span> <span class="mockbtn" data-i="mockOpen">仍要打开</span> <span data-i="frMac3b">，再确认一次</span></li>
+    </ol>
+  </div>
+  <div class="fr-os" id="fr-win" hidden>
+    <div class="dlg dlg-win">
+      <div class="dlg-t" data-i="dlgWinT">Windows 已保护你的电脑</div>
+      <div class="dlg-s" data-i="dlgWinS">Microsoft Defender SmartScreen 阻止了无法识别的应用启动。</div>
+      <div class="dlg-link" data-i="dlgWinLink">更多信息</div>
+      <div class="dlg-btns">
+        <span class="dlg-b ok" data-i="mockRun">仍要运行</span>
+        <span class="dlg-b" data-i="dlgWinNo">不运行</span>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><span class="num">1</span><span data-i="frWin1">双击后跳出上面这个蓝框</span></li>
+      <li><span class="num">2</span><span data-i="frWin2">先点蓝框里的 <b>「更多信息」</b></span></li>
+      <li><span class="num">3</span><span data-i="frWin3">下面才会出现按钮，点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
+    </ol>
+  </div>
   <div class="fr-foot" data-i="frFoot">弹这个不是软件有问题：本项目是免费开源的，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。</div>
 </section>
 
 <section class="block rv d6">
   <div class="eyebrow" data-i="ebHelp">遇到问题</div>
-  <h2 data-i="openTitle">打不开 / 提示有风险？</h2>
+  <h2 data-i="openTitle">按上面放行还是不行？</h2>
+  <p class="hint" data-i="helpLead">首次打开的放行步骤就在上面那个「第一次打开会被系统拦一下」的框里（macOS 和 Windows 都配了图示）。照着做完还卡住，再看这里：</p>
   <details class="fold" id="fold-mac">
-    <summary data-i="macOpenSum">macOS：提示「无法打开，来自身份不明的开发者」</summary>
+    <summary data-i="macStuckSum">macOS：照着做了还是打不开</summary>
     <div class="body">
-      <p data-i="macOpenBody">本项目免费开源，没花钱给苹果交签名「税」（开发者一年 $99），所以首次打开要手动放行一次，并不是软件有问题。新版 macOS（Sequoia）已经去掉了「右键→打开」这个老办法，请走下面这条，所有版本都管用：</p>
       <ol>
-        <li data-i="macStep1">双击安装包，弹出「无法打开…」时点 <b>「完成」</b>（<b>不要点「移到废纸篓」</b>）。</li>
-        <li data-i="macStep2">打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。</li>
-        <li data-i="macStep3">会看到「已阻止使用 Coding Agent Installer」，点旁边的 <b>「仍要打开」</b>，按提示用密码 / Touch ID 确认一次即可。</li>
+        <li data-i="macStuck1">先确认上一步点的是 <b>「完成」</b> 而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。</li>
+        <li data-i="macStuck2">在「系统设置 → 隐私与安全性」最下面找 <b>「仍要打开」</b>。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。</li>
       </ol>
     </div>
   </details>
   <details class="fold" id="fold-win">
-    <summary data-i="winOpenSum">Windows：SmartScreen 蓝框 / 杀软拦截</summary>
+    <summary data-i="winOpenSum">Windows：被 360 / 电脑管家 / 杀软拦了</summary>
     <div class="body">
       <ol>
-        <li data-i="winStep1">SmartScreen 蓝框：点「更多信息」→「仍要运行」。</li>
         <li data-i="winStep2">360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。</li>
-        <li data-i="winStep3">杀软拦了 node 或代理进程：把它加入白名单后重试。</li>
+        <li data-i="winStep3">杀软拦了 node 或代理进程：把 <code>%TEMP%\coding-agent-go</code> 目录和 Node.js 加入白名单后重试。</li>
       </ol>
     </div>
   </details>
@@ -359,21 +406,24 @@ document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
     cards.prepend(document.getElementById("card-mac"));}
 })();
 
-// First-open guide: the moment a download link is clicked, reveal the steps for
-// that card's OS and scroll to them — so the Gatekeeper/SmartScreen prompt is
-// never a surprise.
+// First-open guide: always visible and pre-set to the visitor's OS (with a mock
+// of the actual dialog), so the Gatekeeper/SmartScreen prompt is never a
+// surprise. Clicking a download link nudges it (scroll + pulse) and switches OS.
 (function(){
   var fr=document.getElementById("firstrun");
-  function show(os){
+  function show(os,nudge){
     document.getElementById("fr-mac").hidden = (os!=="mac");
     document.getElementById("fr-win").hidden = (os!=="win");
-    fr.hidden=false;
-    fr.scrollIntoView({behavior:"smooth",block:"center"});
-    fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
+    if(nudge){
+      fr.scrollIntoView({behavior:"smooth",block:"center"});
+      fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
+    }
   }
+  var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
+  show(/Windows|Win64|Win32/i.test(ua) ? "win" : "mac", false);  // default mac
   var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
-  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
-  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
+  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac",true); });
+  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win",true); });
 })();
 
 // ── i18n ──
@@ -388,21 +438,23 @@ var I={
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
     ebHelp:"遇到问题", ebCli:"进阶",
-    frTitle:"下载中…第一次打开这样放行（只需一次）",
-    frMac1:"弹出「无法打开」时点「完成」（千万别点「移到废纸篓」）", frMac2:"打开 系统设置 → 隐私与安全性，拉到最下面", frMac3:"找到拦截提示，点", frMac3b:"，再确认一次",
-    frWin1:"出现蓝框「Windows 已保护你的电脑」", frWin2:"点蓝框里的「更多信息」", frWin3:"再点",
+    frTitle:"第一次打开会被系统拦一下，这样放行（只需一次）",
+    dlgMacT:"无法打开「Coding Agent Installer」", dlgMacS:"Apple 无法验证此 App 是否含有恶意软件。",
+    dlgMacOk:"完成", dlgMacNo:"移到废纸篓", dlgTagOk:"✓ 点这个", dlgTagNo:"✗ 别点（默认高亮的是它）",
+    dlgWinT:"Windows 已保护你的电脑", dlgWinS:"Microsoft Defender SmartScreen 阻止了无法识别的应用启动。",
+    dlgWinLink:"更多信息", dlgWinNo:"不运行",
+    frMac1:"双击后跳出上面这个框，点「完成」（千万别点「移到废纸篓」）", frMac2:"打开 系统设置 → 隐私与安全性，拉到最下面", frMac3:"找到拦截提示，点", frMac3b:"，再确认一次",
+    frWin1:"双击后跳出上面这个蓝框", frWin2:"先点蓝框里的「更多信息」", frWin3:"下面才会出现按钮，点",
     mockOpen:"仍要打开", mockRun:"仍要运行",
     frFoot:"弹这个不是软件有问题：本项目免费开源，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。",
-    openTitle:"打不开 / 提示有风险？",
-    macOpenSum:"macOS：提示「无法打开」「来自身份不明的开发者」",
-    macOpenBody:"本项目免费开源，没花钱给苹果交签名「税」（开发者一年 $99），所以首次打开要手动放行一次，并不是软件有问题。新版 macOS（Sequoia）已去掉「右键→打开」这个老办法，请走下面这条，所有版本都管用：",
-    macStep1:"双击安装包，弹出「无法打开…」时点「完成」（不要点「移到废纸篓」）。",
-    macStep2:"打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。",
-    macStep3:"看到「已阻止使用 Coding Agent Installer」，点旁边的「仍要打开」，按提示用密码 / Touch ID 确认一次即可。",
-    winOpenSum:"Windows：SmartScreen 蓝框 / 杀软拦截",
-    winStep1:"SmartScreen 蓝框：点「更多信息」→「仍要运行」。",
+    openTitle:"按上面放行还是不行？",
+    helpLead:"首次打开的放行步骤就在上面那个「第一次打开会被系统拦一下」的框里（macOS 和 Windows 都配了图示）。照着做完还卡住，再看这里：",
+    macStuckSum:"macOS：照着做了还是打不开",
+    macStuck1:"先确认上一步点的是「完成」而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。",
+    macStuck2:"在「系统设置 → 隐私与安全性」最下面找「仍要打开」。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。",
+    winOpenSum:"Windows：被 360 / 电脑管家 / 杀软拦了",
     winStep2:"360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。",
-    winStep3:"杀软拦了 node 或代理进程：把它加入白名单后重试。",
+    winStep3:"杀软拦了 node 或代理进程：把 %TEMP%\\coding-agent-go 目录和 Node.js 加入白名单后重试。",
     verifySum:"想校验文件完整性 (SHA-256)",
     verifyBody:"每个安装包都附一个 .sha256 文件。对比哈希值一致即可放心运行。",
     cliTitle:"会用命令行？一行直接装（不用下载安装包）",
@@ -422,21 +474,23 @@ var I={
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
     ebHelp:"Troubleshooting", ebCli:"Advanced",
-    frTitle:"Downloading… here's how to open it the first time (just once)",
-    frMac1:"When “could not verify” appears, click “Done” (NOT “Move to Trash”)", frMac2:"Open System Settings → Privacy & Security, scroll to the bottom", frMac3:"Find the blocked message and click", frMac3b:", then confirm once",
-    frWin1:"A blue “Windows protected your PC” box appears", frWin2:"Click “More info” in the box", frWin3:"Then click",
+    frTitle:"The OS blocks the first open — here's how to allow it (just once)",
+    dlgMacT:"“Coding Agent Installer” Not Opened", dlgMacS:"Apple could not verify this app is free of malware.",
+    dlgMacOk:"Done", dlgMacNo:"Move to Trash", dlgTagOk:"✓ click this", dlgTagNo:"✗ not this (it's the default highlight)",
+    dlgWinT:"Windows protected your PC", dlgWinS:"Microsoft Defender SmartScreen prevented an unrecognized app from starting.",
+    dlgWinLink:"More info", dlgWinNo:"Don't run",
+    frMac1:"Double-click; the box above appears — click “Done” (NEVER “Move to Trash”)", frMac2:"Open System Settings → Privacy & Security, scroll to the bottom", frMac3:"Find the blocked message and click", frMac3b:", then confirm once",
+    frWin1:"Double-click; the blue box above appears", frWin2:"First click “More info” in the box", frWin3:"The buttons appear — click",
     mockOpen:"Open Anyway", mockRun:"Run anyway",
     frFoot:"This isn't a problem with the app: it's a free open-source project that hasn't paid Apple/Microsoft's signing “tax” ($99/yr for Apple), so the OS warns once. Allow it once and it's fine — it's safe.",
-    openTitle:"Won't open / flagged as risky?",
-    macOpenSum:"macOS: “could not be opened” / “unidentified developer”",
-    macOpenBody:"This is a free open-source project that hasn't paid Apple's signing “tax” ($99/yr), so you allow it once on first open — it's not a problem with the app. Newer macOS (Sequoia) dropped the old right-click→Open trick, so use this path — it works on every version:",
-    macStep1:"Double-click the installer; when “could not be opened…” appears, click “Done” (do NOT click “Move to Trash”).",
-    macStep2:"Open System Settings → Privacy & Security and scroll down to the “Security” section.",
-    macStep3:"You'll see “Coding Agent Installer was blocked” — click “Open Anyway” next to it, then confirm with your password / Touch ID.",
-    winOpenSum:"Windows: SmartScreen blue box / antivirus block",
-    winStep1:"SmartScreen: click “More info” → “Run anyway”.",
+    openTitle:"Still won't open after allowing it?",
+    helpLead:"The first-open steps are in the “The OS blocks the first open” box above (with a picture for both macOS and Windows). If you did that and it's still stuck, look here:",
+    macStuckSum:"macOS: did the steps but still won't open",
+    macStuck1:"First make sure you clicked “Done”, not “Move to Trash”. If it went to Trash, restore it from Trash or download again.",
+    macStuck2:"In System Settings → Privacy & Security, the “Open Anyway” button is at the bottom. Don't see it? Double-click the installer once more so it re-prompts, and the button appears.",
+    winOpenSum:"Windows: blocked by 360 / PC Manager / antivirus",
     winStep2:"360 / PC Manager popup: choose Allow / Trust, not Block.",
-    winStep3:"If antivirus blocks node or the proxy, allow-list it and retry.",
+    winStep3:"If antivirus blocks node or the proxy, allow-list the %TEMP%\\coding-agent-go folder and Node.js, then retry.",
     verifySum:"Verify file integrity (SHA-256)",
     verifyBody:"Each installer ships a .sha256 file. Match the hash before running.",
     cliTitle:"Comfortable with a terminal? One-line install (no download)",
