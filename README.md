@@ -2,7 +2,7 @@
 [![tests](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml/badge.svg)](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml)
 **中文** · [English](README.en.md)
 
-一行命令，在国内装好 Claude Code / OpenAI Codex / Gemini CLI 并接上国产大模型（GLM / Kimi / MiniMax / Qwen / DeepSeek）。不用翻墙，GUI 操作，电脑小白跟着提示走就行。
+下载安装包，双击就能装好 Claude Code / OpenAI Codex / Gemini CLI 并接上国产大模型（DeepSeek / GLM / Kimi / Qwen / MiniMax）。不用翻墙、不用敲命令，电脑小白跟着提示走就行。会用终端的也可以一行命令装（见 [下面](#其次会用命令行一行直接装)）。
 
 ## 下载安装包（双击运行，最适合电脑小白）
 不会敲命令也没关系：下载下来双击就跑，不用开终端、不用翻墙。它是一个一键安装器（应用内置网页，不依赖浏览器），跑一次装好就行。
@@ -10,18 +10,18 @@
 - 🍎 **macOS（Intel 与 Apple 芯片通用）**：[国内镜像 .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg)
 - 🪟 **Windows 10 / 11（64 位）**：[国内镜像 .exe](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe)
 
-下载后双击运行，会弹出一个安装窗口，跟着走、装完关掉窗口就行。首次打开如果提示「身份不明的开发者」(macOS) 或 SmartScreen 蓝框 (Windows)，见 [安装包打不开怎么办](#安装包打不开怎么办)。macOS 是通用版，Intel 和 Apple 芯片都能用，不用挑。安装包来自 [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest)，每个都附 SHA-256 校验值；下载页和发布版要等版本 tag 构建出来后才有内容。
+下载后双击运行，会弹出一个安装窗口，跟着走、装完关掉窗口就行。首次打开如果提示「身份不明的开发者」(macOS) 或 SmartScreen 蓝框 (Windows)，见 [安装包打不开怎么办](#安装包打不开怎么办)。macOS 是通用版，Intel 和 Apple 芯片都能用，不用挑。安装包来自 [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest)，每个都附 SHA-256 校验值。
 
 ## 演示
 <!--
-  录制指引：录一段 30 秒的完整过程 —— 打开 PowerShell → 粘贴安装命令 → GUI 自动装好 → 终端输入 claude 能用。
+  录制指引：录一段 30 秒的完整过程 —— 下载安装包 → 双击打开（弹出安装窗口）→ 选模型 / 填 Key → 装好后终端输入 claude 能用。
   用 ScreenToGif（Windows）或 Kap（macOS）录屏，导出成 GIF，命名为 demo.gif 放到 docs/ 目录，再取消下面一行的注释。
 -->
 <!-- ![演示](docs/demo.gif) -->
 > 演示动图待补 —— 按上面注释里的指引录一段放到 `docs/demo.gif`，再取消注释即可显示。
 
-## 一键安装并启动安装 UI
-一行命令搞定：下载安装器（`server.py` + `providers.json`），在本机起一个网页版安装界面（默认 http://localhost:17860），浏览器自动打开。不用先 clone 仓库。跟着 GUI 走：① 选 Claude Code / Codex / Gemini → ② 选模型 → ③ 填 API Key → ④ 自动安装并验证。
+## 其次：会用命令行？一行直接装
+（不想下载安装包、习惯终端的话走这条。）一行命令搞定：下载安装器（`server.py` + `providers.json`），在本机起一个网页版安装界面（默认 http://localhost:17860），浏览器自动打开。不用先 clone 仓库。跟着 GUI 走：① 选 Claude Code / Codex / Gemini → ② 选模型 → ③ 填 API Key → ④ 自动安装并验证。
 ### WSL / macOS / Linux（bash）
 打开终端（WSL 里直接用同一条命令），粘贴这一行，回车：
 ```bash

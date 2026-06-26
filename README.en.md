@@ -2,7 +2,7 @@
 [![tests](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml/badge.svg)](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml)
 [中文](README.md) · **English**
 
-One command to install Claude Code / OpenAI Codex / Gemini CLI inside mainland China and wire them to China LLMs (GLM / Kimi / MiniMax / Qwen / DeepSeek). No VPN, a GUI flow, and a non-technical user just follows the prompts.
+Download an installer and double-click to set up Claude Code / OpenAI Codex / Gemini CLI on China LLMs (DeepSeek / GLM / Kimi / Qwen / MiniMax). No VPN, no terminal — a non-technical user just follows the prompts. Comfortable with a terminal? There's a one-line install too (see [below](#secondary-prefer-the-terminal-one-line-install)).
 
 ## Download an installer (double-click, no terminal)
 Best for non-technical users: download, double-click, done — no terminal, no VPN. It's a run-once installer (the UI is an embedded webview, no browser needed).
@@ -10,18 +10,18 @@ Best for non-technical users: download, double-click, done — no terminal, no V
 - 🍎 **macOS (universal — Intel & Apple Silicon)**: [China mirror .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg)
 - 🪟 **Windows 10 / 11 (64-bit)**: [China mirror .exe](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe)
 
-Double-click after downloading; an install window opens — follow it, then close the window when done. If the first open is blocked ("unidentified developer" on macOS, or a SmartScreen box on Windows), see [Installer won't open](#installer-wont-open). The macOS build is universal — it runs on both Intel and Apple Silicon, so there's nothing to pick. Binaries come from [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest), each with a SHA-256; the download page and binaries appear after the first version tag is built.
+Double-click after downloading; an install window opens — follow it, then close the window when done. If the first open is blocked ("unidentified developer" on macOS, or a SmartScreen box on Windows), see [Installer won't open](#installer-wont-open). The macOS build is universal — it runs on both Intel and Apple Silicon, so there's nothing to pick. Binaries come from [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest), each with a SHA-256.
 
 ## Demo
 <!--
-  Recording guide: capture a 30-second run — open PowerShell → paste the install command → the GUI installs everything → type claude in a terminal and it works.
+  Recording guide: capture a 30-second run — download the installer → double-click to open (an install window appears) → pick a model / paste your key → after it installs, type claude in a terminal and it works.
   Record with ScreenToGif (Windows) or Kap (macOS), export a GIF named demo.gif into docs/, then uncomment the line below.
 -->
 <!-- ![demo](docs/demo.gif) -->
 > Demo GIF pending — record one per the guide above, drop it at `docs/demo.gif`, then uncomment to show it.
 
-## One command to install and open the setup UI
-One command does it all: it downloads the installer (`server.py` + `providers.json`), starts a local web setup UI on your machine (default http://localhost:17860), and opens your browser. No need to clone the repo first. Follow the GUI: ① pick Claude Code / Codex / Gemini → ② pick a model → ③ paste your API key → ④ it installs and verifies automatically.
+## Secondary: prefer the terminal? One-line install
+(Take this path if you'd rather not download an installer.) One command does it all: it downloads the installer (`server.py` + `providers.json`), starts a local web setup UI on your machine (default http://localhost:17860), and opens your browser. No need to clone the repo first. Follow the GUI: ① pick Claude Code / Codex / Gemini → ② pick a model → ③ paste your API key → ④ it installs and verifies automatically.
 ### WSL / macOS / Linux (bash)
 Open a terminal (in WSL use the same command), paste this one line, press Enter:
 ```bash
