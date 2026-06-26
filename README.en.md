@@ -76,9 +76,13 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 
 ## Installer won't open
 The binaries aren't paid-signed by Apple/Microsoft, so the OS may block the first open. Allow it once and it's fine after that.
-### macOS: "can’t be opened — unidentified developer"
-- Open the downloaded .dmg, **right-click "Coding Agent Installer" inside → "Open"**, then click "Open" in the dialog (no need to move it to Applications — it's run-once).
-- Still blocked? System Settings → "Privacy & Security" → "Open Anyway".
+### macOS: "could not be opened" / "unidentified developer"
+Newer macOS (Sequoia/15) removed the old right-click→Open trick — it shows "…could not be opened" with only "Done / Move to Trash". Don't worry; use this path, which works on every version (just once):
+1. Double-click the installer; when "…could not be opened" appears, click **"Done"** (do **NOT** click "Move to Trash").
+2. Open System Settings → "Privacy & Security" and scroll down to the "Security" section.
+3. You'll see "Coding Agent Installer was blocked" — click **"Open Anyway"** next to it, then confirm with your password / Touch ID (no need to move it to Applications — it's run-once).
+
+> Want to remove this prompt entirely? That requires a paid Apple signature + notarization. This is a free, run-once installer, so the one-time manual allow stays.
 ### Windows: SmartScreen blue box / antivirus block
 360 / 电脑管家 / Windows SmartScreen sometimes block the `.exe`, the PowerShell script, or the background proxy. If that happens:
 - SmartScreen blue box: click "More info" → "Run anyway".

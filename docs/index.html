@@ -255,9 +255,9 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
 <section id="firstrun" class="firstrun" hidden>
   <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">下载中…第一次打开这样放行（只需一次）</b></div>
   <ol class="steps" id="fr-mac">
-    <li><span class="num">1</span><span data-i="frMac1">在下载好的安装包上 <b>右键点一下</b>（或按住 Control 点）</span></li>
-    <li><span class="num">2</span><span data-i="frMac2">菜单里选 <b>「打开」</b></span></li>
-    <li><span class="num">3</span><span data-i="frMac3">弹窗里再点一次</span> <span class="mockbtn" data-i="mockOpen">打开</span></li>
+    <li><span class="num">1</span><span data-i="frMac1">弹出「无法打开」时，点 <b>「完成」</b>（<b>千万别点「移到废纸篓」</b>）</span></li>
+    <li><span class="num">2</span><span data-i="frMac2">打开 <b>系统设置 → 隐私与安全性</b>，拉到最下面</span></li>
+    <li><span class="num">3</span><span data-i="frMac3">找到拦截提示，点</span> <span class="mockbtn" data-i="mockOpen">仍要打开</span> <span data-i="frMac3b">，再确认一次</span></li>
   </ol>
   <ol class="steps" id="fr-win" hidden>
     <li><span class="num">1</span><span data-i="frWin1">蓝框「Windows 已保护你的电脑」</span></li>
@@ -273,11 +273,11 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
   <details class="fold" id="fold-mac">
     <summary data-i="macOpenSum">macOS：提示「无法打开，来自身份不明的开发者」</summary>
     <div class="body">
-      <p data-i="macOpenBody">安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：</p>
+      <p data-i="macOpenBody">安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）。新版 macOS（Sequoia）已经去掉了「右键→打开」这个老办法，请走下面这条，所有版本都管用：</p>
       <ol>
-        <li data-i="macStep1">打开下载好的 .dmg。</li>
-        <li data-i="macStep2">右键点里面的「Coding Agent Installer」→「打开」，再点一次「打开」（不用拖进「应用程序」，跑一次就行）。</li>
-        <li data-i="macStep3">还不行就去「系统设置 → 隐私与安全性」，找到拦截提示点「仍要打开」。</li>
+        <li data-i="macStep1">双击安装包，弹出「无法打开…」时点 <b>「完成」</b>（<b>不要点「移到废纸篓」</b>）。</li>
+        <li data-i="macStep2">打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。</li>
+        <li data-i="macStep3">会看到「已阻止使用 Coding Agent Installer」，点旁边的 <b>「仍要打开」</b>，按提示用密码 / Touch ID 确认一次即可。</li>
       </ol>
     </div>
   </details>
@@ -389,16 +389,16 @@ var I={
     winNote:"下载后双击运行，会打开一个安装窗口。",
     ebHelp:"遇到问题", ebCli:"进阶",
     frTitle:"下载中…第一次打开这样放行（只需一次）",
-    frMac1:"在下载的安装包上右键点一下（或按住 Control 点）", frMac2:"在菜单里选「打开」", frMac3:"弹窗里再点一次",
+    frMac1:"弹出「无法打开」时点「完成」（千万别点「移到废纸篓」）", frMac2:"打开 系统设置 → 隐私与安全性，拉到最下面", frMac3:"找到拦截提示，点", frMac3b:"，再确认一次",
     frWin1:"出现蓝框「Windows 已保护你的电脑」", frWin2:"点蓝框里的「更多信息」", frWin3:"再点",
-    mockOpen:"打开", mockRun:"仍要运行",
+    mockOpen:"仍要打开", mockRun:"仍要运行",
     frFoot:"弹这个是因为安装包没买苹果/微软的付费签名；放行一次之后就正常了，安全无害。",
     openTitle:"打不开 / 提示有风险？",
-    macOpenSum:"macOS：提示「无法打开，来自身份不明的开发者」",
-    macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：",
-    macStep1:"打开下载好的 .dmg。",
-    macStep2:"右键点里面的「Coding Agent Installer」→「打开」，再点一次「打开」（不用拖进「应用程序」，跑一次就行）。",
-    macStep3:"还不行就去「系统设置 → 隐私与安全性」，找到拦截提示点「仍要打开」。",
+    macOpenSum:"macOS：提示「无法打开」「来自身份不明的开发者」",
+    macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）。新版 macOS（Sequoia）已去掉「右键→打开」这个老办法，请走下面这条，所有版本都管用：",
+    macStep1:"双击安装包，弹出「无法打开…」时点「完成」（不要点「移到废纸篓」）。",
+    macStep2:"打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。",
+    macStep3:"看到「已阻止使用 Coding Agent Installer」，点旁边的「仍要打开」，按提示用密码 / Touch ID 确认一次即可。",
     winOpenSum:"Windows：SmartScreen 蓝框 / 杀软拦截",
     winStep1:"SmartScreen 蓝框：点「更多信息」→「仍要运行」。",
     winStep2:"360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。",
@@ -423,16 +423,16 @@ var I={
     winNote:"Double-click after downloading; an install window opens.",
     ebHelp:"Troubleshooting", ebCli:"Advanced",
     frTitle:"Downloading… here's how to open it the first time (just once)",
-    frMac1:"Right-click (or Control-click) the downloaded installer", frMac2:"Choose “Open” from the menu", frMac3:"In the dialog, click once more",
+    frMac1:"When “could not verify” appears, click “Done” (NOT “Move to Trash”)", frMac2:"Open System Settings → Privacy & Security, scroll to the bottom", frMac3:"Find the blocked message and click", frMac3b:", then confirm once",
     frWin1:"A blue “Windows protected your PC” box appears", frWin2:"Click “More info” in the box", frWin3:"Then click",
-    mockOpen:"Open", mockRun:"Run anyway",
+    mockOpen:"Open Anyway", mockRun:"Run anyway",
     frFoot:"This only appears because the installer isn't paid-signed; allow it once and it's fine — it's safe.",
     openTitle:"Won't open / flagged as risky?",
-    macOpenSum:"macOS: “can’t be opened — unidentified developer”",
-    macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open:",
-    macStep1:"Open the downloaded .dmg.",
-    macStep2:"Right-click “Coding Agent Installer” inside → Open, then click Open again (no need to move it to Applications — it's run-once).",
-    macStep3:"Still blocked? System Settings → Privacy & Security → “Open Anyway”.",
+    macOpenSum:"macOS: “could not be opened” / “unidentified developer”",
+    macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open. Newer macOS (Sequoia) dropped the old right-click→Open trick, so use this path — it works on every version:",
+    macStep1:"Double-click the installer; when “could not be opened…” appears, click “Done” (do NOT click “Move to Trash”).",
+    macStep2:"Open System Settings → Privacy & Security and scroll down to the “Security” section.",
+    macStep3:"You'll see “Coding Agent Installer was blocked” — click “Open Anyway” next to it, then confirm with your password / Touch ID.",
     winOpenSum:"Windows: SmartScreen blue box / antivirus block",
     winStep1:"SmartScreen: click “More info” → “Run anyway”.",
     winStep2:"360 / PC Manager popup: choose Allow / Trust, not Block.",
