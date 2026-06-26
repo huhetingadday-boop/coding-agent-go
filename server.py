@@ -3139,7 +3139,8 @@ def main():
     # browser (and keep serving until Ctrl-C), exactly as before.
     try:
         import webview  # pywebview
-    except Exception:
+    except Exception as e:
+        _dbg(f"pywebview import failed → browser fallback: {e!r}")
         webview = None
     if webview is not None:
         try:
@@ -3148,6 +3149,10 @@ def main():
             webview.start()   # blocks on the GUI loop; returns when the window closes
             return            # window closed → exit; the daemon server dies with us
         except Exception as e:
+            # Windowed app has no console, so this print goes to a sink — also
+            # write the real reason to the debug log so a browser fallback in the
+            # packaged app is diagnosable (see DEBUG_LOG path printed above).
+            _dbg(f"pywebview window failed → browser fallback: {e!r}")
             print(f"  native window unavailable ({e}); opening your browser instead")
 
     _open_browser(url)

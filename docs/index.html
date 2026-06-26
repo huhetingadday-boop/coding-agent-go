@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coding Agent — Go Go Go · 下载安装包</title>
+<title>Coding Agent · 下载安装包</title>
 <meta name="description" content="一键安装 Claude Code / Codex / Gemini 并接上国产大模型，免翻墙。下载 macOS .dmg 或 Windows .exe，双击即用。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23e07a52'/><text x='30' y='52' dy='.32em' font-family='monospace' font-size='52' font-weight='700' fill='white'>%E2%80%BA</text><rect x='52' y='40' width='20' height='26' rx='3' fill='white'/></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -19,10 +19,9 @@
   color-scheme:dark light;
   --bg:#141009;--bg2:#1b1610;--ink:#f6f0e6;--ink2:#c2b6a3;--ink3:#8c7f6c;
   --line:rgba(232,196,150,.13);--line2:rgba(232,196,150,.22);
-  --panel:rgba(38,31,22,.72);--panel-solid:#241d15;--chip:rgba(58,48,35,.6);
+  --panel:rgba(38,31,22,.72);--chip:rgba(58,48,35,.6);
   --brand:#e8804f;--brand2:#f4a878;--brand-dim:#cf6a3c;--brand-ink:#1a0f08;
-  --glow:rgba(224,128,79,.16);--glow2:rgba(224,128,79,.10);
-  --good:#a7c083;
+  --glow:rgba(224,128,79,.16);--glow2:rgba(224,128,79,.10);--good:#a7c083;
   --radius:20px;--radius-sm:13px;--radius-xs:9px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --display:'Bricolage Grotesque',var(--sans);
@@ -32,203 +31,164 @@
 @media (prefers-color-scheme:light){:root{
   --bg:#f4efe4;--bg2:#efe8da;--ink:#241d14;--ink2:#5e5547;--ink3:#938875;
   --line:rgba(120,90,50,.16);--line2:rgba(120,90,50,.28);
-  --panel:rgba(255,253,247,.82);--panel-solid:#fffdf7;--chip:rgba(120,90,50,.07);
+  --panel:rgba(255,253,247,.82);--chip:rgba(120,90,50,.07);
   --brand:#c1663b;--brand2:#a8552e;--brand-dim:#a8552e;--brand-ink:#fff;
-  --glow:rgba(193,102,59,.14);--glow2:rgba(193,102,59,.08);
-  --good:#6f8a55;
+  --glow:rgba(193,102,59,.14);--glow2:rgba(193,102,59,.08);--good:#6f8a55;
   --shadow:0 1px 0 rgba(255,255,255,.6) inset,0 18px 44px -20px rgba(120,80,40,.4);
 }}
 
 *{box-sizing:border-box}
-[hidden]{display:none!important}  /* beats .steps{display:flex} etc. */
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-  line-height:1.62;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.62;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
 /* atmosphere: warm ember glows + fine grain, fixed behind everything */
 body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
-  background:
-    radial-gradient(900px 520px at 12% -8%,var(--glow),transparent 60%),
+  background:radial-gradient(900px 520px at 12% -8%,var(--glow),transparent 60%),
     radial-gradient(760px 600px at 110% 8%,var(--glow2),transparent 55%),
     linear-gradient(180deg,var(--bg2),var(--bg) 38%)}
-body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
-  mix-blend-mode:overlay;
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-.wrap{max-width:880px;margin:0 auto;padding:clamp(28px,6vw,64px) 20px 72px}
+.wrap{max-width:680px;margin:0 auto;padding:clamp(26px,5vw,52px) 20px 80px;text-align:center}
 
-/* ── hero ── */
-.top{display:flex;align-items:center;gap:14px;margin-bottom:34px}
-.logo{width:50px;height:50px;border-radius:15px;flex:0 0 auto;display:grid;place-items:center;
-  font-family:var(--mono);font-size:27px;font-weight:700;color:#fff;line-height:1;
+/* ── hero (kept compact so the BUTTON owns the page) ── */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:30px;text-align:left}
+.logo{width:46px;height:46px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
+  font-family:var(--mono);font-size:25px;font-weight:700;color:#fff;line-height:1;
   background:linear-gradient(150deg,var(--brand2),var(--brand-dim));
   box-shadow:0 8px 24px -6px rgba(224,128,79,.6),0 1px 0 rgba(255,255,255,.35) inset}
-.logo b{display:inline-block;width:.5ch;height:1.05em;margin-left:.12em;background:#fff;border-radius:2px;
+.logo b{display:inline-block;width:.5ch;height:1.05em;margin-left:.1em;background:#fff;border-radius:2px;
   transform:translateY(.08em);animation:blink 1.15s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;font-weight:600;
-  color:var(--brand);text-transform:uppercase}
-.langsw{margin-left:auto;display:flex;gap:2px;background:var(--chip);
-  border:1px solid var(--line);border-radius:999px;padding:3px}
-.langsw button{border:0;background:transparent;color:var(--ink3);font:inherit;font-size:12.5px;
-  font-weight:600;padding:5px 13px;border-radius:999px;cursor:pointer;transition:.18s}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;font-weight:600;color:var(--brand);text-transform:uppercase}
+.langsw{margin-left:auto;display:flex;gap:2px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px}
+.langsw button{border:0;background:transparent;color:var(--ink3);font:inherit;font-size:12.5px;font-weight:600;
+  padding:5px 13px;border-radius:999px;cursor:pointer;transition:.18s}
 .langsw button.active{background:var(--brand);color:var(--brand-ink)}
-
-.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(44px,9vw,82px);
-  line-height:.92;letter-spacing:-.035em;margin:0;
-  background:linear-gradient(170deg,var(--ink),var(--ink) 55%,var(--brand2));
+.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(33px,6.5vw,54px);line-height:1;
+  letter-spacing:-.03em;margin:12px 0 0;
+  background:linear-gradient(170deg,var(--ink),var(--ink) 58%,var(--brand2));
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.gogo{display:inline-flex;gap:.34em;margin-left:.05em;vertical-align:.04em}
-.gogo span{font-family:var(--mono);font-size:clamp(15px,2.6vw,22px);font-weight:700;
-  color:var(--brand);-webkit-text-fill-color:var(--brand);
-  animation:rev .5s both}
-.gogo span:nth-child(1){animation-delay:.30s}
-.gogo span:nth-child(2){animation-delay:.42s}
-.gogo span:nth-child(3){animation-delay:.54s}
-.sub{color:var(--ink2);font-size:15px;margin:16px 0 0;max-width:46ch}
-.lead{color:var(--ink2);font-size:15.5px;margin:8px 0 0;max-width:52ch}
+.tag{color:var(--ink2);font-size:15px;margin:13px 0 0}
 
-/* ── reveal-on-load ── */
 .rv{animation:rev .62s both cubic-bezier(.2,.7,.2,1)}
 @keyframes rev{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.22s}
-.d4{animation-delay:.32s}.d5{animation-delay:.42s}.d6{animation-delay:.52s}
+.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.22s}.d4{animation-delay:.32s}
 
-/* ── OS cards ── */
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:38px}
-@media (max-width:620px){.cards{grid-template-columns:1fr}}
-/* solo = only the detected OS card is shown; centre it so the page stays calm */
-.cards.solo{grid-template-columns:1fr;max-width:560px;margin-inline:auto}
-/* low-key link to reveal the other OS — secondary to the big download button */
-.otheros{display:block;margin:18px auto 0;padding:4px 4px;background:none;border:0;cursor:pointer;
-  font:inherit;font-size:13px;color:var(--ink3);border-bottom:1px dashed var(--line2);
-  transition:color .18s,border-color .18s}
-.otheros:hover{color:var(--brand);border-color:var(--brand)}
-.card{position:relative;border-radius:var(--radius);padding:24px 22px 22px;
-  background:var(--panel);border:1px solid var(--line);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  box-shadow:var(--shadow);display:flex;flex-direction:column;
-  transition:transform .22s cubic-bezier(.2,.7,.2,1),border-color .22s,box-shadow .22s}
-.card:hover{transform:translateY(-4px);border-color:var(--line2)}
-.card.match{border-color:transparent;
-  box-shadow:0 0 0 1.5px var(--brand),0 0 46px -10px var(--glow),var(--shadow)}
-.card.match::after{content:"";position:absolute;inset:0;border-radius:var(--radius);pointer-events:none;
-  background:radial-gradient(120% 80% at 50% -10%,var(--glow),transparent 60%)}
-.os{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;font-family:var(--display);
-  letter-spacing:-.01em}
-.os svg{width:22px;height:22px;color:var(--ink)}
-.badge{position:absolute;top:16px;right:16px;display:none;align-items:center;gap:5px;
-  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--brand-ink);background:var(--brand);padding:4px 9px;border-radius:999px}
-.card.detected .badge{display:inline-flex}  /* badge = auto-detected OS, stays put; .match (the ring) may move on a download click */
-.arch{color:var(--ink3);font-size:12.5px;margin:7px 0 16px;font-family:var(--mono)}
+/* ── THE button: the page's centre of gravity ── */
+.cta{margin-top:clamp(32px,6vw,50px);display:flex;flex-direction:column;align-items:center}
+.megabtn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:14px;
+  width:min(100%,460px);padding:clamp(25px,5vw,33px) 30px;text-decoration:none;border-radius:24px;
+  font-family:var(--display);font-weight:800;font-size:clamp(20px,4.6vw,28px);letter-spacing:.005em;
+  color:var(--brand-ink);background:linear-gradient(180deg,var(--brand2),var(--brand));overflow:hidden;
+  box-shadow:0 24px 64px -18px rgba(224,128,79,.85),0 0 0 1px rgba(255,255,255,.2) inset;
+  animation:halo 3.4s ease-in-out infinite;transition:transform .2s,filter .2s}
+@keyframes halo{0%,100%{box-shadow:0 24px 64px -18px rgba(224,128,79,.8),0 0 0 1px rgba(255,255,255,.2) inset}
+  50%{box-shadow:0 26px 90px -14px rgba(224,128,79,.98),0 0 0 1px rgba(255,255,255,.28) inset}}
+.megabtn .os-ico{display:inline-flex;align-items:center}
+.megabtn .os-ico svg{width:.92em;height:.92em;display:block}
+.megabtn::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.4) 50%,transparent 68%);transform:translateX(-130%)}
+.megabtn:hover{transform:translateY(-3px);filter:brightness(1.05)}
+.megabtn:hover::after{transform:translateX(130%);transition:transform .7s ease}
+.megabtn:active{transform:translateY(0) scale(.99)}
+.megabtn:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+.cta-sub{color:var(--ink3);font-size:13px;margin:14px 0 0;font-family:var(--mono)}
 
+/* ── inline-expand row: tiny triggers, content unfolds right below ── */
+.inline-row{margin-top:26px;display:flex;flex-wrap:wrap;gap:9px 22px;justify-content:center}
+.inline-row button{background:none;border:0;cursor:pointer;font:inherit;font-size:13.5px;color:var(--ink3);
+  display:inline-flex;align-items:center;gap:6px;padding:5px 2px;transition:color .18s}
+.inline-row .cv{font-size:10px;transition:transform .22s}
+.inline-row button:hover{color:var(--ink)}
+.inline-row button[aria-expanded="true"]{color:var(--brand)}
+.inline-row button[aria-expanded="true"] .cv{transform:rotate(180deg)}
+.panel{overflow:hidden;text-align:left;margin:14px auto 0;max-width:540px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);
+  padding:18px;animation:unfold .34s cubic-bezier(.2,.7,.2,1)}
+@keyframes unfold{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.panel.pulse{animation:unfold .34s cubic-bezier(.2,.7,.2,1),pp 1.1s ease .34s 2}
+@keyframes pp{0%,100%{box-shadow:var(--shadow)}50%{box-shadow:0 0 50px -6px var(--glow),var(--shadow)}}
+.p-title{font-family:var(--display);font-weight:700;font-size:14.5px;margin:0 0 12px}
+
+.mirrors{display:flex;gap:8px;flex-wrap:wrap}
+.mirrors a{flex:1;min-width:92px;text-align:center;text-decoration:none;font-size:12.5px;font-weight:600;
+  color:var(--ink2);background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-xs);
+  padding:9px 6px;transition:.16s}
+.mirrors a:hover{border-color:var(--brand);color:var(--ink)}
+.p-note{font-size:12.5px;color:var(--ink3);margin:12px 0 0}
 .btn-pri{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
   background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
-  font-family:var(--display);font-weight:800;font-size:15.5px;letter-spacing:.01em;
-  padding:14px 16px;border-radius:var(--radius-sm);transition:filter .18s;
-  box-shadow:0 10px 26px -12px rgba(224,128,79,.7)}
+  font-family:var(--display);font-weight:800;font-size:15px;padding:13px 16px;border-radius:var(--radius-sm);
+  box-shadow:0 10px 26px -12px rgba(224,128,79,.7);margin:0 0 10px;transition:filter .18s}
 .btn-pri::before{content:"↓";font-family:var(--mono);font-weight:700;opacity:.85}
 .btn-pri:hover{filter:brightness(1.06)}
-.mirrors{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
-.mirrors a{flex:1;min-width:80px;text-align:center;text-decoration:none;font-size:12px;font-weight:600;
-  color:var(--ink2);background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-xs);
-  padding:8px 6px;transition:.16s}
-.mirrors a:hover{border-color:var(--brand);color:var(--ink)}
-.note{font-size:12px;color:var(--ink3);margin-top:13px;flex:1}
 
-/* first-open guide (revealed on download click) */
-.firstrun{margin-top:18px;border:1px solid var(--brand);border-radius:var(--radius);
-  background:linear-gradient(180deg,var(--brand-bg),transparent),var(--panel);
-  padding:18px 20px;box-shadow:0 0 44px -16px var(--glow)}
-.firstrun.pulse{animation:frpulse 1.1s ease 2}
-@keyframes frpulse{0%,100%{box-shadow:0 0 44px -16px var(--glow)}50%{box-shadow:0 0 50px -4px var(--glow)}}
-.fr-head{display:flex;align-items:center;gap:9px;font-size:15px;margin-bottom:14px;
-  font-family:var(--display);font-weight:700}
-.fr-check{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
-  background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:14px}
-.steps{list-style:none;margin:0;padding:0;display:flex;gap:10px;flex-wrap:wrap}
-.steps li{flex:1;min-width:160px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink2);
-  background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px}
+/* first-open guide (inside the "blocked on first open" panel) */
+.fr-head{display:flex;align-items:center;gap:9px;font-size:14.5px;margin:0 0 14px;font-family:var(--display);font-weight:700}
+.fr-check{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:13px}
+.fr-os{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.fr-os .steps{flex:1;min-width:220px;flex-direction:column}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.steps li{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2);
+  background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px}
 .steps li b{color:var(--ink)}
-.num{width:22px;height:22px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+.num{width:21px;height:21px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
   background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:12px}
-.mockbtn{display:inline-block;background:linear-gradient(180deg,var(--brand2),var(--brand));
-  color:var(--brand-ink);font-weight:700;font-size:12.5px;padding:3px 12px;border-radius:7px;white-space:nowrap;
+.mockbtn{display:inline-block;background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
+  font-weight:700;font-size:12px;padding:2px 10px;border-radius:6px;white-space:nowrap;
   box-shadow:0 0 0 2px var(--glow),0 4px 12px -5px rgba(224,128,79,.8)}
-.fr-foot{margin-top:13px;font-size:12px;color:var(--ink3)}
-.fr-intro{font-size:13.5px;color:var(--ink2);margin:0 0 12px}
-.fr-intro b{color:var(--ink)}
-/* a mock of the real OS dialog so users recognize the box on their screen */
-.fr-os{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
-.fr-os .steps{flex:1;min-width:240px;flex-direction:column}
-.fr-os .steps li{min-width:0}
-.dlg{flex:0 0 264px;max-width:264px;border-radius:13px;padding:15px 15px 13px;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+.dlg{flex:0 0 246px;max-width:246px;border-radius:13px;padding:15px;font-family:var(--sans);
   background:#ece8e1;border:1px solid rgba(0,0,0,.16);color:#26221d;
   box-shadow:0 16px 40px -16px rgba(0,0,0,.55);text-align:center}
-.dlg-ico{font-size:28px;line-height:1}
-.dlg-t{font-weight:700;font-size:13px;margin:7px 0 3px;line-height:1.3}
-.dlg-s{font-size:10.5px;color:#6b655d;line-height:1.45;margin-bottom:12px}
+.dlg-ico{font-size:26px;line-height:1}.dlg-t{font-weight:700;font-size:13px;margin:6px 0 3px;line-height:1.3}
+.dlg-s{font-size:10.5px;color:#6b655d;line-height:1.45;margin-bottom:11px}
 .dlg-btns{display:flex;gap:8px;justify-content:center}
-.dlg-b{font-size:12px;padding:5px 13px;border-radius:7px;font-weight:600;position:relative}
-.dlg-b.ok{background:#fff;border:1px solid rgba(0,0,0,.2);color:#26221d;
-  box-shadow:0 0 0 2px #1f8a4c}
+.dlg-b{font-size:12px;padding:5px 13px;border-radius:7px;font-weight:600}
+.dlg-b.ok{background:#fff;border:1px solid rgba(0,0,0,.2);color:#26221d;box-shadow:0 0 0 2px #1f8a4c}
 .dlg-b.danger{background:#5b554d;color:#fff}
 .dlg-tags{display:flex;gap:8px;justify-content:center;margin-top:9px;font-size:10.5px;font-weight:700}
-.tag-ok{color:#1f8a4c}
-.tag-no{color:#c0392b}
+.tag-ok{color:#1f8a4c}.tag-no{color:#c0392b}
 .dlg-win{background:#fbfbf9;text-align:left}
-.dlg-win .dlg-t{font-size:13.5px;margin-top:0}
-.dlg-win .dlg-s{text-align:left}
+.dlg-win .dlg-t{font-size:13.5px;margin-top:0}.dlg-win .dlg-s{text-align:left}
 .dlg-link{font-size:11.5px;color:#2563c9;font-weight:600;text-decoration:underline;margin-bottom:11px}
 .dlg-win .dlg-btns{justify-content:flex-end}
+.fr-foot{margin:13px 0 0;font-size:12px;color:var(--ink3)}
 
-/* ── sections ── */
-.block{margin-top:48px}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--brand);margin:0 0 12px;display:flex;align-items:center;gap:8px}
-.eyebrow::before{content:"";width:18px;height:1px;background:var(--brand);opacity:.6}
-h2{font-family:var(--display);font-weight:700;font-size:21px;margin:0 0 14px;letter-spacing:-.015em}
-.fold{border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:9px;
-  background:var(--panel);overflow:hidden;transition:border-color .18s}
+/* "still stuck" folds inside the help panel */
+.fold{border:1px solid var(--line);border-radius:var(--radius-sm);margin-top:9px;background:var(--chip);overflow:hidden;transition:border-color .18s}
 .fold:hover{border-color:var(--line2)}
-.fold summary{cursor:pointer;padding:14px 17px;font-weight:600;font-size:14px;list-style:none;
-  display:flex;align-items:center;gap:10px}
+.fold summary{cursor:pointer;padding:12px 14px;font-weight:600;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:9px}
 .fold summary::-webkit-details-marker{display:none}
-.fold summary::before{content:"+";font-family:var(--mono);color:var(--brand);font-weight:700;
-  font-size:16px;transition:transform .2s;width:14px;text-align:center}
+.fold summary::before{content:"+";font-family:var(--mono);color:var(--brand);font-weight:700;font-size:15px;width:13px;text-align:center}
 .fold[open] summary::before{content:"–"}
-.fold .body{padding:0 17px 16px;color:var(--ink2);font-size:13.6px}
-.fold .body ol{margin:4px 0;padding-left:20px}
-.fold .body li{margin:5px 0}
-.fold .body b{color:var(--ink)}
+.fold .body{padding:0 14px 13px;color:var(--ink2);font-size:13px}
+.fold .body ol{margin:4px 0;padding-left:18px}.fold .body li{margin:5px 0}.fold .body b{color:var(--ink)}
+code{font-family:var(--mono);font-size:12px;color:var(--brand2)}
 
-/* terminal-window command blocks */
-code{font-family:var(--mono);font-size:12.5px;color:var(--brand2)}
-.term{margin:9px 0 0;border:1px solid var(--line);border-radius:var(--radius-xs);overflow:hidden;
-  background:#0f0c07}
-@media (prefers-color-scheme:light){.term{background:#241d15}}
-.term-bar{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
-.term-bar i{width:10px;height:10px;border-radius:50%;background:#3a342b}
-.term-bar i:nth-child(1){background:#e8804f}.term-bar i:nth-child(2){background:#d9b66a}
-.term-bar i:nth-child(3){background:#a7c083}
-.term-bar span{margin-left:6px;font-family:var(--mono);font-size:10.5px;color:#7c7264;letter-spacing:.05em}
-.cmd{display:block;font-family:var(--mono);font-size:12.5px;color:#ece3d4;
-  padding:13px 14px;overflow-x:auto;white-space:pre;line-height:1.7}
+/* terminal command blocks (one-line install) */
+.hint{font-size:12.5px;color:var(--ink3);margin:0 0 6px}
+.hint.mt{margin-top:13px}
+.term{margin:0;border:1px solid var(--line);border-radius:var(--radius-xs);overflow:hidden;background:#0f0c07}
+.term-bar{display:flex;align-items:center;gap:6px;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.06)}
+.term-bar i{width:9px;height:9px;border-radius:50%;background:#3a342b}
+.term-bar i:nth-child(1){background:#e8804f}.term-bar i:nth-child(2){background:#d9b66a}.term-bar i:nth-child(3){background:#a7c083}
+.term-bar span{margin-left:6px;font-family:var(--mono);font-size:10px;color:#7c7264;letter-spacing:.05em}
+.cmd{display:block;font-family:var(--mono);font-size:12px;color:#ece3d4;padding:12px;overflow-x:auto;white-space:pre;line-height:1.7}
 .cmd .p{color:var(--brand2);-webkit-user-select:none;user-select:none}
 .copy{float:right;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#ccc2b2;
-  font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;
-  cursor:pointer;margin-left:10px;transition:.16s}
+  font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:6px;cursor:pointer;margin-left:10px;transition:.16s}
 .copy:hover{border-color:var(--brand);color:#fff}
-.hint{font-size:13px;color:var(--ink3);margin:14px 0 4px}
 
-footer{margin-top:54px;padding-top:22px;border-top:1px solid var(--line);
-  color:var(--ink3);font-size:12.5px;text-align:center}
+footer{margin-top:54px;color:var(--ink3);font-size:12.5px}
 footer a{color:var(--brand);text-decoration:none}
 footer a:hover{text-decoration:underline}
+footer .ghlink{display:inline-flex;align-items:center;gap:6px}
+footer .gh-ico{width:15px;height:15px}
 footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opacity:.85}
-
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}}
 </style>
 </head>
@@ -244,131 +204,108 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
   </div>
 </div>
 
-<h1 class="wordmark rv d2">Coding&nbsp;Agent <span class="gogo"><span>go</span><span>go</span><span>go</span></span></h1>
-<p class="sub rv d2" data-i="sub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</p>
-<p class="lead rv d3" data-i="lead">下载、双击、跟着提示走，几分钟装好。不用敲命令，电脑小白也能上手。</p>
+<h1 class="wordmark rv d2">Coding&nbsp;Agent</h1>
+<p class="tag rv d2" data-i="sub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</p>
 
-<div class="cards">
-  <!-- macOS -->
-  <div class="card rv d4" id="card-mac">
-    <span class="badge" data-i="yourSystem">你的系统</span>
-    <div class="os">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 1.3c.1 1-.3 2-.9 2.8-.7.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.6-.8 1.7-1.3 2.6-1.4zM19 17.2c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.5-3.7-2.9C1 17.1.7 12.5 2.3 10c.9-1.4 2.4-2.3 3.9-2.3 1.5 0 2.5 1 3.7 1 1.2 0 2-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.9 7.7z"/></svg>
-      macOS
-    </div>
-    <div class="arch" data-i="macArch">通用版 · Intel 与 Apple 芯片都支持 · .dmg</div>
-    <a class="btn-pri" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
-    <div class="mirrors">
-      <a id="mac-m1" href="#" data-i="mirror1">国内镜像</a>
-      <a id="mac-m2" href="#" data-i="mirror2">备用镜像</a>
-      <a id="mac-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
-    </div>
-    <div class="note" data-i="macNote">双击运行会打开一个安装窗口，跟着走就行。</div>
+<div class="cta rv d3">
+  <a class="megabtn" id="dl-main" href="#"><span class="os-ico" id="os-ico" aria-hidden="true"></span> <span id="megabtn-label">下载 macOS 安装包</span></a>
+  <p class="cta-sub" id="cta-sub">双击装好，跟着走就行</p>
+
+  <div class="inline-row" id="row">
+    <button type="button" aria-controls="p-more" aria-expanded="false"><span data-i="tMore">备用下载链接</span><span class="cv">⌄</span></button>
+    <button type="button" aria-controls="p-win"  aria-expanded="false"><span id="other-toggle">用 Windows？</span><span class="cv">⌄</span></button>
+    <button type="button" aria-controls="p-help" aria-expanded="false"><span data-i="tHelp">第一次打开被拦？</span><span class="cv">⌄</span></button>
+    <button type="button" aria-controls="p-cli"  aria-expanded="false"><span data-i="tCli">会用命令行？</span><span class="cv">⌄</span></button>
   </div>
 
-  <!-- Windows -->
-  <div class="card rv d5" id="card-win">
-    <span class="badge" data-i="yourSystem">你的系统</span>
-    <div class="os">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM10.5 12.5v7.1L3 18.5v-6zM11.5 4.3 21 3v8.5h-9.5zM21 12.5V21l-9.5-1.3v-7.2z"/></svg>
-      Windows
-    </div>
-    <div class="arch" data-i="winArch">Windows 10 / 11 (64 位) · .exe</div>
-    <a class="btn-pri" id="dl-win" data-i="dlWin" href="#">下载 Windows 版 (.exe)</a>
+  <!-- 其他下载方式 / 镜像（当前系统） -->
+  <div class="panel" id="p-more" hidden>
+    <div class="p-title" data-i="pMoreTitle">从这几个地址下载，任选一个</div>
     <div class="mirrors">
-      <a id="win-m1" href="#" data-i="mirror1">国内镜像</a>
-      <a id="win-m2" href="#" data-i="mirror2">备用镜像</a>
-      <a id="win-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
+      <a id="m1" href="#" data-i="mirror1">国内镜像</a>
+      <a id="m2" href="#" data-i="mirror2">备用镜像</a>
+      <a id="m3" href="#" data-i="mirrorGh">GitHub 直连</a>
     </div>
-    <div class="note" data-i="winNote">下载后双击运行，会打开一个安装窗口。</div>
+    <p class="p-note" data-i="pMoreNote">下载后双击运行，会打开一个安装窗口，跟着走就行。每个包都附 .sha256 校验值。</p>
+  </div>
+
+  <!-- 另一个系统 -->
+  <div class="panel" id="p-win" hidden>
+    <div class="p-title" id="p-win-title">Windows 10 / 11（64 位）</div>
+    <a class="btn-pri" id="p-win-btn" href="#">下载 Windows 版 (.exe)</a>
+    <div class="mirrors">
+      <a id="w1" href="#" data-i="mirror1">国内镜像</a>
+      <a id="w2" href="#" data-i="mirror2">备用镜像</a>
+      <a id="w3" href="#" data-i="mirrorGh">GitHub 直连</a>
+    </div>
+  </div>
+
+  <!-- 第一次打开被系统拦 → 放行引导 -->
+  <div class="panel" id="p-help" hidden>
+    <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">第一次打开会被系统拦一下，这样放行（只需一次）</b></div>
+    <div class="fr-os" id="fr-mac">
+      <div class="dlg dlg-mac">
+        <div class="dlg-ico">⚠️</div>
+        <div class="dlg-t" data-i="dlgMacT">无法打开「Coding Agent Installer」</div>
+        <div class="dlg-s" data-i="dlgMacS">Apple 无法验证此 App 是否含有恶意软件。</div>
+        <div class="dlg-btns">
+          <span class="dlg-b ok" data-i="dlgMacOk">完成</span>
+          <span class="dlg-b danger" data-i="dlgMacNo">移到废纸篓</span>
+        </div>
+        <div class="dlg-tags"><span class="tag-ok" data-i="dlgTagOk">✓ 点这个</span><span class="tag-no" data-i="dlgTagNo">✗ 别点（默认高亮的是它）</span></div>
+      </div>
+      <ol class="steps">
+        <li><span class="num">1</span><span data-i="frMac1">双击后跳出上面这个框，点「完成」（千万别点「移到废纸篓」）</span></li>
+        <li><span class="num">2</span><span data-i="frMac2">打开 系统设置 → 隐私与安全性，拉到最下面</span></li>
+        <li><span class="num">3</span><span data-i="frMac3">找到拦截提示，点</span> <span class="mockbtn" data-i="mockOpen">仍要打开</span> <span data-i="frMac3b">，再确认一次</span></li>
+      </ol>
+    </div>
+    <div class="fr-os" id="fr-win" hidden>
+      <div class="dlg dlg-win">
+        <div class="dlg-t" data-i="dlgWinT">Windows 已保护你的电脑</div>
+        <div class="dlg-s" data-i="dlgWinS">Microsoft Defender SmartScreen 阻止了无法识别的应用启动。</div>
+        <div class="dlg-link" data-i="dlgWinLink">更多信息</div>
+        <div class="dlg-btns">
+          <span class="dlg-b ok" data-i="mockRun">仍要运行</span>
+          <span class="dlg-b" data-i="dlgWinNo">不运行</span>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><span class="num">1</span><span data-i="frWin1">双击后跳出上面这个蓝框</span></li>
+        <li><span class="num">2</span><span data-i="frWin2">先点蓝框里的「更多信息」</span></li>
+        <li><span class="num">3</span><span data-i="frWin3">下面才会出现按钮，点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
+      </ol>
+    </div>
+    <p class="fr-foot" data-i="frFoot">弹这个不是软件有问题：本项目是免费开源的，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。</p>
+    <details class="fold">
+      <summary data-i="macStuckSum">macOS：照着做了还是打不开</summary>
+      <div class="body"><ol>
+        <li data-i="macStuck1">先确认上一步点的是「完成」而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。</li>
+        <li data-i="macStuck2">在「系统设置 → 隐私与安全性」最下面找「仍要打开」。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。</li>
+      </ol></div>
+    </details>
+    <details class="fold">
+      <summary data-i="winOpenSum">Windows：被 360 / 电脑管家 / 杀软拦了</summary>
+      <div class="body"><ol>
+        <li data-i="winStep2">360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。</li>
+        <li data-i="winStep3">装到一半失败、或者命令一直打不开，多半是杀软在后台悄悄拦了。打开你的杀软，找到「信任区 / 白名单」，把这个安装器加进去再装一次；实在不会弄，就先临时关掉杀软，装完再打开。</li>
+      </ol></div>
+    </details>
+  </div>
+
+  <!-- 命令行一键装 -->
+  <div class="panel" id="p-cli" hidden>
+    <div class="p-title" data-i="cliTitle">会用命令行？一行直接装（不用下载安装包）</div>
+    <p class="hint" data-i="cliMac">macOS / Linux / WSL — 打开终端粘贴回车：</p>
+    <div class="term"><div class="term-bar"><i></i><i></i><i></i><span>bash</span></div><span class="cmd"><span class="p">$ </span>bash &lt;(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)<button class="copy" data-cmd="bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)" data-i="copy">复制</button></span></div>
+    <p class="hint mt" data-i="cliWin">Windows — 打开 PowerShell 粘贴回车：</p>
+    <div class="term"><div class="term-bar"><i></i><i></i><i></i><span>powershell</span></div><span class="cmd"><span class="p">&gt; </span>irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex<button class="copy" data-cmd="irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex" data-i="copy">复制</button></span></div>
   </div>
 </div>
 
-<!-- shown only when we detected the visitor's OS; reveals the other OS card -->
-<button type="button" class="otheros" id="other-os" hidden></button>
-
-<!-- first-open guide: revealed + scrolled-to the moment a download is clicked -->
-<section id="firstrun" class="firstrun" hidden>
-  <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">下载好了！第一次打开会被系统拦一下，这样放行（只需一次）</b></div>
-  <div class="fr-os" id="fr-mac">
-    <div class="dlg dlg-mac">
-      <div class="dlg-ico">⚠️</div>
-      <div class="dlg-t" data-i="dlgMacT">无法打开「Coding Agent Installer」</div>
-      <div class="dlg-s" data-i="dlgMacS">Apple 无法验证此 App 是否含有恶意软件。</div>
-      <div class="dlg-btns">
-        <span class="dlg-b ok" data-i="dlgMacOk">完成</span>
-        <span class="dlg-b danger" data-i="dlgMacNo">移到废纸篓</span>
-      </div>
-      <div class="dlg-tags"><span class="tag-ok" data-i="dlgTagOk">✓ 点这个</span><span class="tag-no" data-i="dlgTagNo">✗ 别点（默认高亮的是它）</span></div>
-    </div>
-    <ol class="steps">
-      <li><span class="num">1</span><span data-i="frMac1">双击后跳出上面这个框，点 <b>「完成」</b>（<b>千万别点「移到废纸篓」</b>）</span></li>
-      <li><span class="num">2</span><span data-i="frMac2">打开 <b>系统设置 → 隐私与安全性</b>，拉到最下面</span></li>
-      <li><span class="num">3</span><span data-i="frMac3">找到拦截提示，点</span> <span class="mockbtn" data-i="mockOpen">仍要打开</span> <span data-i="frMac3b">，再确认一次</span></li>
-    </ol>
-  </div>
-  <div class="fr-os" id="fr-win" hidden>
-    <div class="dlg dlg-win">
-      <div class="dlg-t" data-i="dlgWinT">Windows 已保护你的电脑</div>
-      <div class="dlg-s" data-i="dlgWinS">Microsoft Defender SmartScreen 阻止了无法识别的应用启动。</div>
-      <div class="dlg-link" data-i="dlgWinLink">更多信息</div>
-      <div class="dlg-btns">
-        <span class="dlg-b ok" data-i="mockRun">仍要运行</span>
-        <span class="dlg-b" data-i="dlgWinNo">不运行</span>
-      </div>
-    </div>
-    <ol class="steps">
-      <li><span class="num">1</span><span data-i="frWin1">双击后跳出上面这个蓝框</span></li>
-      <li><span class="num">2</span><span data-i="frWin2">先点蓝框里的 <b>「更多信息」</b></span></li>
-      <li><span class="num">3</span><span data-i="frWin3">下面才会出现按钮，点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
-    </ol>
-  </div>
-  <div class="fr-foot" data-i="frFoot">弹这个不是软件有问题：本项目是免费开源的，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。</div>
-</section>
-
-<section class="block rv d6">
-  <div class="eyebrow" data-i="ebHelp">遇到问题</div>
-  <h2 data-i="openTitle">按上面放行还是不行？</h2>
-  <p class="hint" data-i="helpLead">首次打开的放行步骤就在上面那个「第一次打开会被系统拦一下」的框里（macOS 和 Windows 都配了图示）。照着做完还卡住，再看这里：</p>
-  <details class="fold" id="fold-mac">
-    <summary data-i="macStuckSum">macOS：照着做了还是打不开</summary>
-    <div class="body">
-      <ol>
-        <li data-i="macStuck1">先确认上一步点的是 <b>「完成」</b> 而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。</li>
-        <li data-i="macStuck2">在「系统设置 → 隐私与安全性」最下面找 <b>「仍要打开」</b>。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。</li>
-      </ol>
-    </div>
-  </details>
-  <details class="fold" id="fold-win">
-    <summary data-i="winOpenSum">Windows：被 360 / 电脑管家 / 杀软拦了</summary>
-    <div class="body">
-      <ol>
-        <li data-i="winStep2">360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。</li>
-        <li data-i="winStep3">杀软拦了 node 或代理进程：把 <code>%TEMP%\coding-agent-go</code> 目录和 Node.js 加入白名单后重试。</li>
-      </ol>
-    </div>
-  </details>
-</section>
-
-<section class="block rv d6">
-  <div class="eyebrow" data-i="ebCli">进阶</div>
-  <h2 data-i="cliTitle">会用命令行？一行直接装（不用下载安装包）</h2>
-  <p class="hint" data-i="cliMac">macOS / Linux / WSL — 打开终端粘贴回车：</p>
-  <div class="term">
-    <div class="term-bar"><i></i><i></i><i></i><span>bash</span></div>
-    <span class="cmd"><span class="p">$ </span>bash &lt;(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)<button class="copy" data-cmd="bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)" data-i="copy">复制</button></span>
-  </div>
-  <p class="hint" data-i="cliWin">Windows — 打开 PowerShell 粘贴回车：</p>
-  <div class="term">
-    <div class="term-bar"><i></i><i></i><i></i><span>powershell</span></div>
-    <span class="cmd"><span class="p">&gt; </span>irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex<button class="copy" data-cmd="irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex" data-i="copy">复制</button></span>
-  </div>
-</section>
-
-<footer class="rv d6">
+<footer class="rv d4">
   <p>
-    <a href="https://github.com/huhetingadday-boop/coding-agent-go" data-i="ghRepo">GitHub 项目主页</a> ·
-    <a href="https://github.com/huhetingadday-boop/coding-agent-go/releases/latest" data-i="allDownloads">查看全部下载</a>
+    <a class="ghlink" href="https://github.com/huhetingadday-boop/coding-agent-go"><svg class="gh-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.78 0 12.292c0 5.211 3.438 9.63 8.205 11.188.6.111.82-.254.82-.567 0-.28-.01-1.022-.015-2.005-3.338.711-4.042-1.582-4.042-1.582-.546-1.361-1.335-1.725-1.335-1.725-1.087-.731.084-.716.084-.716 1.205.082 1.838 1.215 1.838 1.215 1.07 1.803 2.809 1.282 3.495.981.108-.763.417-1.282.76-1.577-2.665-.295-5.466-1.309-5.466-5.827 0-1.287.465-2.339 1.235-3.164-.135-.297-.54-1.497.105-3.121 0 0 1.005-.316 3.3 1.209.96-.262 1.98-.392 3-.398 1.02.006 2.04.136 3 .398 2.28-1.525 3.285-1.209 3.285-1.209.645 1.624.24 2.824.12 3.121.765.825 1.23 1.877 1.23 3.164 0 4.53-2.805 5.527-5.475 5.817.42.354.81 1.077.81 2.182 0 1.578-.015 2.846-.015 3.229 0 .309.21.678.825.561C20.565 21.917 24 17.495 24 12.292 24 5.78 18.627.5 12 .5z"/></svg><span data-i="ghRepo">GitHub 项目主页</span></a>
   </p>
   <p class="lock"><span aria-hidden="true">🔒</span> <span data-i="privacy">你的 API Key 只在本机和大模型厂商之间走，绝不会发给作者或任何第三方。</span></p>
 </footer>
@@ -377,94 +314,89 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
 <script>
 var OWNER="huhetingadday-boop", REPO="coding-agent-go";
 var BASE="https://github.com/"+OWNER+"/"+REPO+"/releases/latest/download/";
-var MAC="coding-agent-go-macos.dmg",   // one universal2 dmg (Intel + Apple Silicon)
-    WIN="coding-agent-go-windows.exe";
+var MAC="coding-agent-go-macos.dmg", WIN="coding-agent-go-windows.exe";
 // gh-proxy / ghfast are the same China-friendly mirrors the installer uses.
 var GHPROXY="https://gh-proxy.com/", GHFAST="https://ghfast.top/";
 
-// Primary download => China mirror (fast without a VPN); the small links cover a
-// backup mirror and a direct GitHub pull.
-function setLinks(btn,m2,gh,asset){
-  var direct=BASE+asset, el;
-  if((el=document.getElementById(btn))) el.href=GHPROXY+direct;
-  if((el=document.getElementById(m2))) el.href=GHFAST+direct;
-  if((el=document.getElementById(gh))) el.href=direct;
-}
-// One universal .dmg covers Intel + Apple Silicon, so macOS uses the same
-// single-button + 国内镜像(gh-proxy) / 备用(ghfast) / 直连 trio as Windows.
-setLinks("dl-mac","mac-m2","mac-gh",MAC);
-document.getElementById("mac-m1").href=GHPROXY+BASE+MAC;
-setLinks("dl-win","win-m2","win-gh",WIN);
-document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
+// Detect the visitor's OS. The big button = that OS; the other OS is one tap
+// away under "用 Windows？/ 用 macOS？". Unknown OS (Linux) defaults to macOS,
+// and the terminal one-liner under "会用命令行？" covers everyone.
+var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
+var isWin=/Windows|Win64|Win32/i.test(ua);
+var OS = isWin ? "win" : "mac";
+var OTHER = OS==="win" ? "mac" : "win";
+function asset(os){ return os==="win"?WIN:MAC; }
+function link(os,kind){ var u=BASE+asset(os);
+  return kind==="ghfast"?GHFAST+u : kind==="direct"?u : GHPROXY+u; }  // default: China mirror
 
-// OS-aware download. To keep the page calm for beginners we show ONLY the
-// visitor's detected OS card by default and tuck the other OS behind a small
-// link. Two separate marks live on the cards:
-//   • .detected — the "你的系统" badge; set on the genuinely detected OS, NEVER moves.
-//   • .match — the orange ring; defaults to the detected card but FOLLOWS download
-//     clicks, so the highlighted card and the first-open guide always agree.
-(function(){
-  var cards=document.querySelector(".cards");
-  var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
-  var other=document.getElementById("other-os");
-  var fr=document.getElementById("firstrun");
-  var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
-  var isWin=/Windows|Win64|Win32/i.test(ua);
-  var isMac=/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua);
+// Wire every download link (primary OS + the other OS panel).
+document.getElementById("dl-main").href = link(OS,"proxy");
+document.getElementById("m1").href = link(OS,"proxy");
+document.getElementById("m2").href = link(OS,"ghfast");
+document.getElementById("m3").href = link(OS,"direct");
+var pw=document.getElementById("p-win-btn");
+pw.href = link(OTHER,"proxy");
+document.getElementById("w1").href = link(OTHER,"proxy");
+document.getElementById("w2").href = link(OTHER,"ghfast");
+document.getElementById("w3").href = link(OTHER,"direct");
 
-  if(isWin || isMac){
-    var mine = isWin ? w : m, theirs = isWin ? m : w;
-    mine.classList.add("detected","match");
-    cards.prepend(mine);
-    theirs.hidden = true;          // hide the other OS card by default
-    cards.classList.add("solo");   // centre the single card
-    // applyLang() (called at the end) fills the link's text from this key.
-    other.setAttribute("data-i", isWin ? "otherMac" : "otherWin");
-    other.hidden = false;
-  }
-  // Unknown OS (Linux/other): leave BOTH cards visible, link stays hidden.
+// Platform logo on the big button (Apple on macOS, Windows on Windows) so it
+// reads instantly as "the installer for YOUR computer", not a generic download.
+var ICON_APPLE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 1.3c.1 1-.3 2-.9 2.8-.7.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.6-.8 1.7-1.3 2.6-1.4zM19 17.2c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.5-3.7-2.9C1 17.1.7 12.5 2.3 10c.9-1.4 2.4-2.3 3.9-2.3 1.5 0 2.5 1 3.7 1 1.2 0 2-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.9 7.7z"/></svg>';
+var ICON_WIN='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM10.5 12.5v7.1L3 18.5v-6zM11.5 4.3 21 3v8.5h-9.5zM21 12.5V21l-9.5-1.3v-7.2z"/></svg>';
+document.getElementById("os-ico").innerHTML = (OS==="win" ? ICON_WIN : ICON_APPLE);
 
-  // The link reveals the hidden card and restores the two-up layout.
-  other.addEventListener("click",function(){
-    var justShown = m.hidden ? m : w;   // the currently-hidden card is about to show
-    m.hidden=false; w.hidden=false;
-    cards.classList.remove("solo");
-    other.hidden=true;
-    // replay the load-reveal so the new card eases in instead of popping
-    justShown.style.animation="none"; void justShown.offsetWidth;
-    justShown.style.animation="rev .45s both";
+// ── inline expand: one panel open at a time, unfolds right below the row ──
+var row=document.getElementById("row");
+var triggers=[].slice.call(row.querySelectorAll("button[aria-controls]"));
+function setOpen(id){
+  triggers.forEach(function(t){
+    var pid=t.getAttribute("aria-controls"), on=(pid===id);
+    t.setAttribute("aria-expanded", on?"true":"false");
+    document.getElementById(pid).hidden=!on;
   });
+}
+function closeAll(){ triggers.forEach(function(t){
+  t.setAttribute("aria-expanded","false");
+  document.getElementById(t.getAttribute("aria-controls")).hidden=true; }); }
+row.addEventListener("click",function(e){
+  var b=e.target.closest("button[aria-controls]"); if(!b) return;
+  var id=b.getAttribute("aria-controls");
+  if(b.getAttribute("aria-expanded")==="true"){ closeAll(); return; }
+  if(id==="p-help") setGuide(OS);   // manual open → show the visitor's OS guide
+  setOpen(id);
+});
 
-  // First-open guide: hidden until a download link is clicked, then it reveals the
-  // steps for THAT card's OS (mock dialog), moves the ring to it, scrolls + pulses
-  // — so the Gatekeeper/SmartScreen prompt is never a surprise.
-  function show(os){
-    m.classList.toggle("match", os==="mac");
-    w.classList.toggle("match", os==="win");
-    document.getElementById("fr-mac").hidden = (os!=="mac");
-    document.getElementById("fr-win").hidden = (os!=="win");
-    fr.hidden=false;
-    fr.scrollIntoView({behavior:"smooth",block:"center"});
-    fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
-  }
-  m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
-  w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
-})();
+// first-open guide lives inside the help panel; show the right OS's dialog mock.
+function setGuide(os){
+  document.getElementById("fr-mac").hidden=(os!=="mac");
+  document.getElementById("fr-win").hidden=(os!=="win");
+}
+// Clicking a download starts the file AND reveals that OS's first-open guide,
+// so the Gatekeeper / SmartScreen prompt is never a surprise.
+function openHelp(os){
+  setGuide(os); setOpen("p-help");
+  var p=document.getElementById("p-help");
+  p.scrollIntoView({behavior:"smooth",block:"center"});
+  p.classList.remove("pulse"); void p.offsetWidth; p.classList.add("pulse");
+}
+document.getElementById("dl-main").addEventListener("click",function(){ openHelp(OS); });
+pw.addEventListener("click",function(){ openHelp(OTHER); });
 
 // ── i18n ──
 var I={
   zh:{
     sub:"Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙",
-    lead:"下载、双击、跟着提示走，几分钟装好。不用敲命令，电脑小白也能上手。",
-    yourSystem:"你的系统",
-    macArch:"通用版 · Intel 与 Apple 芯片都支持 · .dmg", winArch:"Windows 10 / 11 (64 位) · .exe",
-    dlMac:"下载 .dmg", dlWin:"下载 Windows 版 (.exe)",
+    dlBigMac:"下载 macOS 安装包", dlBigWin:"下载 Windows 安装包",
+    ctaMac:"双击装好，跟着走就行", ctaWin:"双击装好，跟着走就行",
+    tMore:"备用下载链接", tHelp:"第一次打开被拦？", tCli:"会用命令行？",
+    otherWin:"用 Windows？", otherMac:"用 macOS？",
+    macArch:"macOS · 通用版（Intel 与 Apple 芯片）", winArch:"Windows 10 / 11（64 位）",
+    dlMac:"下载 macOS 版 (.dmg)", dlWin:"下载 Windows 版 (.exe)",
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
-    macNote:"双击运行会打开一个安装窗口，跟着走就行。",
-    winNote:"下载后双击运行，会打开一个安装窗口。",
-    otherWin:"用 Windows？点这里下载 →", otherMac:"用 macOS？点这里下载 →",
-    ebHelp:"遇到问题", ebCli:"进阶",
-    frTitle:"下载好了！第一次打开会被系统拦一下，这样放行（只需一次）",
+    pMoreTitle:"从这几个地址下载，任选一个",
+    pMoreNote:"下载后双击运行，会打开一个安装窗口，跟着走就行。每个包都附 .sha256 校验值。",
+    frTitle:"第一次打开会被系统拦一下，这样放行（只需一次）",
     dlgMacT:"无法打开「Coding Agent Installer」", dlgMacS:"Apple 无法验证此 App 是否含有恶意软件。",
     dlgMacOk:"完成", dlgMacNo:"移到废纸篓", dlgTagOk:"✓ 点这个", dlgTagNo:"✗ 别点（默认高亮的是它）",
     dlgWinT:"Windows 已保护你的电脑", dlgWinS:"Microsoft Defender SmartScreen 阻止了无法识别的应用启动。",
@@ -473,33 +405,30 @@ var I={
     frWin1:"双击后跳出上面这个蓝框", frWin2:"先点蓝框里的「更多信息」", frWin3:"下面才会出现按钮，点",
     mockOpen:"仍要打开", mockRun:"仍要运行",
     frFoot:"弹这个不是软件有问题：本项目免费开源，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。",
-    openTitle:"按上面放行还是不行？",
-    helpLead:"点上面的「下载」按钮后，上方会弹出首次打开的放行步骤（带弹窗图示，macOS 和 Windows 都有）。照着做完还卡住，再看这里：",
     macStuckSum:"macOS：照着做了还是打不开",
     macStuck1:"先确认上一步点的是「完成」而不是「移到废纸篓」。万一点成了废纸篓，去废纸篓还原，或重新下载一次。",
     macStuck2:"在「系统设置 → 隐私与安全性」最下面找「仍要打开」。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。",
     winOpenSum:"Windows：被 360 / 电脑管家 / 杀软拦了",
     winStep2:"360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。",
-    winStep3:"装到一半失败、或者命令一直打不开，多半是杀软在后台悄悄拦了。打开你的杀软（360 / 电脑管家 / Windows 安全中心），找到「信任区 / 白名单 / 允许的程序」，把这个安装器加进去再装一次；实在不会弄，就先临时关掉杀软，装完再打开。",
+    winStep3:"装到一半失败、或者命令一直打不开，多半是杀软在后台悄悄拦了。打开你的杀软，找到「信任区 / 白名单」，把这个安装器加进去再装一次；实在不会弄，就先临时关掉杀软，装完再打开。",
     cliTitle:"会用命令行？一行直接装（不用下载安装包）",
-    cliMac:"macOS / Linux / WSL — 打开终端粘贴回车：",
-    cliWin:"Windows — 打开 PowerShell 粘贴回车：",
+    cliMac:"macOS / Linux / WSL — 打开终端粘贴回车：", cliWin:"Windows — 打开 PowerShell 粘贴回车：",
     copy:"复制", copied:"已复制 ✓",
     ghRepo:"GitHub 项目主页", allDownloads:"查看全部下载",
     privacy:"你的 API Key 只在本机和大模型厂商之间走，绝不会发给作者或任何第三方。"
   },
   en:{
     sub:"Claude Code · Codex · Gemini · One-click access to China LLMs, no VPN",
-    lead:"Download, double-click, follow the prompts — ready in minutes. No terminal needed, easy enough for non-technical users.",
-    yourSystem:"Your system",
-    macArch:"Universal · Intel & Apple Silicon · .dmg", winArch:"Windows 10 / 11 (64-bit) · .exe",
-    dlMac:"Download .dmg", dlWin:"Download for Windows (.exe)",
+    dlBigMac:"Download for macOS", dlBigWin:"Download for Windows",
+    ctaMac:"Double-click to install", ctaWin:"Double-click to install",
+    tMore:"Backup links", tHelp:"Blocked on first open?", tCli:"Prefer the terminal?",
+    otherWin:"On Windows?", otherMac:"On macOS?",
+    macArch:"macOS · Universal (Intel & Apple Silicon)", winArch:"Windows 10 / 11 (64-bit)",
+    dlMac:"Download for macOS (.dmg)", dlWin:"Download for Windows (.exe)",
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
-    macNote:"Double-clicking opens an install window — just follow it.",
-    winNote:"Double-click after downloading; an install window opens.",
-    otherWin:"On Windows? Get the Windows version →", otherMac:"On macOS? Get the macOS version →",
-    ebHelp:"Troubleshooting", ebCli:"Advanced",
-    frTitle:"Downloaded! The OS blocks the first open — here's how to allow it (just once)",
+    pMoreTitle:"Download from any of these",
+    pMoreNote:"Double-click after downloading; an install window opens. Each file ships a .sha256 checksum.",
+    frTitle:"The OS blocks the first open — here's how to allow it (just once)",
     dlgMacT:"“Coding Agent Installer” Not Opened", dlgMacS:"Apple could not verify this app is free of malware.",
     dlgMacOk:"Done", dlgMacNo:"Move to Trash", dlgTagOk:"✓ click this", dlgTagNo:"✗ not this (it's the default highlight)",
     dlgWinT:"Windows protected your PC", dlgWinS:"Microsoft Defender SmartScreen prevented an unrecognized app from starting.",
@@ -508,17 +437,14 @@ var I={
     frWin1:"Double-click; the blue box above appears", frWin2:"First click “More info” in the box", frWin3:"The buttons appear — click",
     mockOpen:"Open Anyway", mockRun:"Run anyway",
     frFoot:"This isn't a problem with the app: it's a free open-source project that hasn't paid Apple/Microsoft's signing “tax” ($99/yr for Apple), so the OS warns once. Allow it once and it's fine — it's safe.",
-    openTitle:"Still won't open after allowing it?",
-    helpLead:"After you click a “Download” button above, the first-open steps appear there (with a picture of the dialog, for both macOS and Windows). If you did that and it's still stuck, look here:",
     macStuckSum:"macOS: did the steps but still won't open",
-    macStuck1:"First make sure you clicked “Done”, not “Move to Trash”. If it went to Trash, restore it from Trash or download again.",
-    macStuck2:"In System Settings → Privacy & Security, the “Open Anyway” button is at the bottom. Don't see it? Double-click the installer once more so it re-prompts, and the button appears.",
+    macStuck1:"First make sure you clicked “Done”, not “Move to Trash”. If it went to Trash, restore it or download again.",
+    macStuck2:"In System Settings → Privacy & Security, the “Open Anyway” button is at the bottom. Don't see it? Double-click the installer once more so it re-prompts.",
     winOpenSum:"Windows: blocked by 360 / PC Manager / antivirus",
     winStep2:"360 / PC Manager popup: choose Allow / Trust, not Block.",
-    winStep3:"If the install fails partway, or a command just won't open, your antivirus is probably blocking it in the background. Open it (360 / PC Manager / Windows Security), find “Trusted / Allowed apps”, add this installer, and try again. Too fiddly? Turn the antivirus off, install, then turn it back on.",
+    winStep3:"If the install fails partway, or a command won't open, your antivirus is probably blocking it in the background. Open it, find “Trusted / Allowed apps”, add this installer, and try again. Too fiddly? Turn the antivirus off, install, then turn it back on.",
     cliTitle:"Comfortable with a terminal? One-line install (no download)",
-    cliMac:"macOS / Linux / WSL — paste into Terminal:",
-    cliWin:"Windows — paste into PowerShell:",
+    cliMac:"macOS / Linux / WSL — paste into Terminal:", cliWin:"Windows — paste into PowerShell:",
     copy:"Copy", copied:"Copied ✓",
     ghRepo:"GitHub repo", allDownloads:"All downloads",
     privacy:"Your API key only goes between this machine and the model vendor — never to the author or any third party."
@@ -529,6 +455,12 @@ function applyLang(L){
   document.querySelectorAll("[data-i]").forEach(function(el){
     var k=el.getAttribute("data-i"); if(I[L][k]!==undefined) el.textContent=I[L][k];
   });
+  // OS-specific labels (depend on both the detected OS and the language)
+  document.getElementById("megabtn-label").textContent = I[L][OS==="win"?"dlBigWin":"dlBigMac"];
+  document.getElementById("cta-sub").textContent       = I[L][OS==="win"?"ctaWin":"ctaMac"];
+  document.getElementById("other-toggle").textContent  = I[L][OTHER==="win"?"otherWin":"otherMac"];
+  document.getElementById("p-win-title").textContent   = I[L][OTHER==="win"?"winArch":"macArch"];
+  document.getElementById("p-win-btn").textContent     = I[L][OTHER==="win"?"dlWin":"dlMac"];
   document.querySelectorAll(".langsw button").forEach(function(b){
     b.classList.toggle("active", b.getAttribute("data-lang")===L);
   });

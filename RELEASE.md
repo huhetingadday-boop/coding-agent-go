@@ -8,10 +8,10 @@ who runs it.
 
 ## Cut a new version
 1. Land your changes on `main` and wait for the `tests` workflow to go green. Never tag a red build — `@latest` ships a new tag to every user instantly.
-2. Tag and push (use the next semver):
+2. Tag and push. Versions are CalVer `vYY.M.N` — `YY` = year, `M` = month, `N` = the Nth release that month (reset to 1 each month). So the first June-2026 release is `v26.6.1`, the next is `v26.6.2`, July's first is `v26.7.1`. Keep the leading `v`: `build-release.yml` triggers on `tags: ['v*']`, and jsDelivr `@latest` still orders these by semver (`26.6.1` > `1.1.1`), so it resolves to the newest.
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v26.6.1
+git push origin v26.6.1
 ```
 3. Pushing the tag triggers `build-release.yml`, which builds the double-click installers — `coding-agent-go-windows.exe` and `coding-agent-go-macos.dmg` (one universal2 build for both Intel and Apple Silicon) — each with its `.sha256`, and attaches them to the GitHub Release. The apps embed a native webview (pywebview), so the UI opens in its own window, not a browser. The download page's `releases/latest/download/...` links go live as soon as this finishes.
 4. Refresh the jsdelivr cache so `@latest` resolves to the new tag right away (it caches floating refs for ~12h):

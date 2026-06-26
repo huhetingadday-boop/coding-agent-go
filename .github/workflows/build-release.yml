@@ -50,14 +50,28 @@ jobs:
           set -euo pipefail
           # "Coding Agent Installer" so Finder/the taskbar read it as a run-once
           # installer, not an app to keep around.
+          # pywebview loads its GUI backend by a RUNTIME import (cocoa on macOS,
+          # edgechromium on Windows), which PyInstaller's static analysis misses —
+          # so without --collect-all + an explicit --hidden-import the bundled app
+          # finds no backend and silently falls back to opening a browser. These
+          # flags force the backend (and pyobjc / pythonnet bits) into the bundle
+          # so the app opens its own native window, like a real desktop app.
           if [ "$RUNNER_OS" = "Windows" ]; then
             # --windowed = no console; one file. The UI is the WebView2 window.
+            # --icon gives the .exe our brand mark instead of PyInstaller's default.
             pyinstaller --onefile --windowed --name "Coding Agent Installer" \
+              --icon assets/icon.ico \
+              --collect-all webview \
+              --hidden-import webview.platforms.edgechromium \
               --add-data "providers.json;." server.py
           else
             # --windowed makes a real .app bundle; --target-arch universal2 makes
             # one binary that runs on Intel + Apple Silicon. The UI is WKWebView.
+            # --icon gives the .app our brand mark instead of the default rocket.
             pyinstaller --windowed --target-arch universal2 --name "Coding Agent Installer" \
+              --icon assets/icon.icns \
+              --collect-all webview \
+              --hidden-import webview.platforms.cocoa \
               --add-data "providers.json:." server.py
           fi
       - name: Package + checksum
