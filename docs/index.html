@@ -5,113 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coding Agent — Go Go Go · 下载安装包</title>
 <meta name="description" content="一键安装 Claude Code / Codex / Gemini 并接上国产大模型，免翻墙。下载 macOS .dmg 或 Windows .exe，双击即用。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23d97757'/><text x='50' y='52' dy='.35em' text-anchor='middle' font-size='60' fill='white'>%E2%9C%A6</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23e07a52'/><text x='30' y='52' dy='.32em' font-family='monospace' font-size='52' font-weight='700' fill='white'>%E2%80%BA</text><rect x='52' y='40' width='20' height='26' rx='3' fill='white'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
+/* Distinctive display face — self-served via jsDelivr (reachable in CN, unlike
+   Google Fonts). font-display:swap => system fallback shows instantly. */
+@font-face{font-family:'Bricolage Grotesque';font-style:normal;font-weight:700;font-display:swap;
+  src:url('https://cdn.jsdelivr.net/npm/@fontsource/bricolage-grotesque@5/files/bricolage-grotesque-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Bricolage Grotesque';font-style:normal;font-weight:800;font-display:swap;
+  src:url('https://cdn.jsdelivr.net/npm/@fontsource/bricolage-grotesque@5/files/bricolage-grotesque-latin-800-normal.woff2') format('woff2')}
+
 :root{
-  color-scheme:light dark;
-  --bg:#1b1916;--surface:#232019;--surface2:#2d2922;--border:#37322a;--border2:#463f35;
-  --text:#f4f1ea;--text2:#b3ab9d;--text3:#847c6d;--brand:#d97757;--brand-dim:#c56a4a;
-  --brand-bg:rgba(217,119,87,.13);--green:#9ab27e;--red:#d98a76;
-  --radius:18px;--radius-sm:12px;--radius-xs:10px;
-  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  --mono:"SF Mono","Cascadia Code","Fira Code","JetBrains Mono",monospace;
+  color-scheme:dark light;
+  --bg:#141009;--bg2:#1b1610;--ink:#f6f0e6;--ink2:#c2b6a3;--ink3:#8c7f6c;
+  --line:rgba(232,196,150,.13);--line2:rgba(232,196,150,.22);
+  --panel:rgba(38,31,22,.72);--panel-solid:#241d15;--chip:rgba(58,48,35,.6);
+  --brand:#e8804f;--brand2:#f4a878;--brand-dim:#cf6a3c;--brand-ink:#1a0f08;
+  --glow:rgba(224,128,79,.16);--glow2:rgba(224,128,79,.10);
+  --good:#a7c083;
+  --radius:20px;--radius-sm:13px;--radius-xs:9px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --display:'Bricolage Grotesque',var(--sans);
+  --mono:"SF Mono","Cascadia Code","JetBrains Mono","Fira Code",ui-monospace,monospace;
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 18px 50px -18px rgba(0,0,0,.7);
 }
 @media (prefers-color-scheme:light){:root{
-  --bg:#f0eee6;--surface:#fdfcf9;--surface2:#f3f0e8;--border:#e7e2d6;--border2:#dad3c5;
-  --text:#2a261f;--text2:#6b6557;--text3:#9a9384;--brand:#c1663b;--brand-dim:#a85932;
-  --brand-bg:rgba(193,102,59,.09);--green:#6f8a55;--red:#c06a52;
+  --bg:#f4efe4;--bg2:#efe8da;--ink:#241d14;--ink2:#5e5547;--ink3:#938875;
+  --line:rgba(120,90,50,.16);--line2:rgba(120,90,50,.28);
+  --panel:rgba(255,253,247,.82);--panel-solid:#fffdf7;--chip:rgba(120,90,50,.07);
+  --brand:#c1663b;--brand2:#a8552e;--brand-dim:#a8552e;--brand-ink:#fff;
+  --glow:rgba(193,102,59,.14);--glow2:rgba(193,102,59,.08);
+  --good:#6f8a55;
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset,0 18px 44px -20px rgba(120,80,40,.4);
 }}
+
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
-  line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:780px;margin:0 auto;padding:40px 20px 64px}
-header{display:flex;align-items:center;gap:14px;margin-bottom:6px}
-.logo{width:52px;height:52px;border-radius:14px;flex:0 0 auto;
-  background:linear-gradient(135deg,var(--brand),var(--brand-dim));
-  display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 16px rgba(0,0,0,.25)}
-h1{font-size:25px;margin:0;letter-spacing:-.4px}
-.sub{color:var(--text2);font-size:14px;margin:2px 0 0}
-.langsw{margin-left:auto;display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:999px;padding:3px}
-.langsw button{border:0;background:transparent;color:var(--text3);font:inherit;font-size:12.5px;
-  padding:4px 11px;border-radius:999px;cursor:pointer}
-.langsw button.active{background:var(--brand);color:#fff}
-.lead{color:var(--text2);font-size:15px;margin:18px 0 26px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media (max-width:600px){.cards{grid-template-columns:1fr}}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:22px 20px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden}
-.card.match{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand),0 10px 34px rgba(0,0,0,.28)}
-.card .os{font-size:19px;font-weight:700;display:flex;align-items:center;gap:9px}
-.card .os svg{width:22px;height:22px}
-.card .arch{color:var(--text3);font-size:12.5px;margin-bottom:12px}
-.badge{position:absolute;top:14px;right:14px;background:var(--brand-bg);color:var(--brand);
-  font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:none}
-.card.match .badge{display:inline-block}
-.card .os{margin-bottom:2px}
-.btn{display:block;text-align:center;text-decoration:none;border-radius:var(--radius-sm);
-  padding:13px 16px;font-weight:700;font-size:15px;margin-top:12px}
-.btn-pri{background:var(--brand);color:#fff}
-.btn-pri:hover{background:var(--brand-dim)}
-.dl-split{display:flex;align-items:stretch;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden}
-.dl-go{flex:1;background:var(--brand);color:#fff;font-weight:700;font-size:15px;text-decoration:none;
-  display:flex;align-items:center;justify-content:center;padding:13px 12px}
-.dl-go:hover{background:var(--brand-dim)}
-.dl-chip{flex:0 0 auto;border:0;border-left:1px solid rgba(255,255,255,.4);
-  background-color:var(--brand);color:#fff;font:inherit;font-size:12.5px;font-weight:700;
-  padding:0 30px 0 14px;cursor:pointer;-webkit-appearance:none;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E");
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  line-height:1.62;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden}
+/* atmosphere: warm ember glows + fine grain, fixed behind everything */
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(900px 520px at 12% -8%,var(--glow),transparent 60%),
+    radial-gradient(760px 600px at 110% 8%,var(--glow2),transparent 55%),
+    linear-gradient(180deg,var(--bg2),var(--bg) 38%)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.wrap{max-width:880px;margin:0 auto;padding:clamp(28px,6vw,64px) 20px 72px}
+
+/* ── hero ── */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+.logo{width:50px;height:50px;border-radius:15px;flex:0 0 auto;display:grid;place-items:center;
+  font-family:var(--mono);font-size:27px;font-weight:700;color:#fff;line-height:1;
+  background:linear-gradient(150deg,var(--brand2),var(--brand-dim));
+  box-shadow:0 8px 24px -6px rgba(224,128,79,.6),0 1px 0 rgba(255,255,255,.35) inset}
+.logo b{display:inline-block;width:.5ch;height:1.05em;margin-left:.12em;background:#fff;border-radius:2px;
+  transform:translateY(.08em);animation:blink 1.15s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;font-weight:600;
+  color:var(--brand);text-transform:uppercase}
+.langsw{margin-left:auto;display:flex;gap:2px;background:var(--chip);
+  border:1px solid var(--line);border-radius:999px;padding:3px}
+.langsw button{border:0;background:transparent;color:var(--ink3);font:inherit;font-size:12.5px;
+  font-weight:600;padding:5px 13px;border-radius:999px;cursor:pointer;transition:.18s}
+.langsw button.active{background:var(--brand);color:var(--brand-ink)}
+
+.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(44px,9vw,82px);
+  line-height:.92;letter-spacing:-.035em;margin:0;
+  background:linear-gradient(170deg,var(--ink),var(--ink) 55%,var(--brand2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.gogo{display:inline-flex;gap:.34em;margin-left:.05em;vertical-align:.04em}
+.gogo span{font-family:var(--mono);font-size:clamp(15px,2.6vw,22px);font-weight:700;
+  color:var(--brand);-webkit-text-fill-color:var(--brand);
+  animation:rev .5s both}
+.gogo span:nth-child(1){animation-delay:.30s}
+.gogo span:nth-child(2){animation-delay:.42s}
+.gogo span:nth-child(3){animation-delay:.54s}
+.sub{color:var(--ink2);font-size:15px;margin:16px 0 0;max-width:46ch}
+.lead{color:var(--ink2);font-size:15.5px;margin:8px 0 0;max-width:52ch}
+
+/* ── reveal-on-load ── */
+.rv{animation:rev .62s both cubic-bezier(.2,.7,.2,1)}
+@keyframes rev{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.22s}
+.d4{animation-delay:.32s}.d5{animation-delay:.42s}.d6{animation-delay:.52s}
+
+/* ── OS cards ── */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:38px}
+@media (max-width:620px){.cards{grid-template-columns:1fr}}
+.card{position:relative;border-radius:var(--radius);padding:24px 22px 22px;
+  background:var(--panel);border:1px solid var(--line);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;
+  transition:transform .22s cubic-bezier(.2,.7,.2,1),border-color .22s,box-shadow .22s}
+.card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.card.match{border-color:transparent;
+  box-shadow:0 0 0 1.5px var(--brand),0 0 46px -10px var(--glow),var(--shadow)}
+.card.match::after{content:"";position:absolute;inset:0;border-radius:var(--radius);pointer-events:none;
+  background:radial-gradient(120% 80% at 50% -10%,var(--glow),transparent 60%)}
+.os{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;font-family:var(--display);
+  letter-spacing:-.01em}
+.os svg{width:22px;height:22px;color:var(--ink)}
+.badge{position:absolute;top:16px;right:16px;display:none;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--brand-ink);background:var(--brand);padding:4px 9px;border-radius:999px}
+.card.match .badge{display:inline-flex}
+.arch{color:var(--ink3);font-size:12.5px;margin:7px 0 16px;font-family:var(--mono)}
+
+/* split download button: big action + embedded chip picker */
+.dl-split{display:flex;align-items:stretch;border-radius:var(--radius-sm);overflow:hidden;
+  box-shadow:0 10px 26px -12px rgba(224,128,79,.7)}
+.dl-go{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
+  font-weight:800;font-size:15.5px;text-decoration:none;padding:14px 12px;
+  font-family:var(--display);letter-spacing:.01em;position:relative;transition:filter .18s}
+.dl-go:hover{filter:brightness(1.06)}
+.dl-go::before{content:"↓";font-family:var(--mono);font-weight:700;opacity:.85}
+.dl-chip{flex:0 0 auto;border:0;border-left:1px solid rgba(0,0,0,.16);
+  background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12.5px;font-weight:700;
+  padding:0 30px 0 14px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:filter .18s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%231a0f08' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 11px center;background-size:11px}
-.dl-chip:hover{background-color:var(--brand-dim)}
+.dl-chip:hover{filter:brightness(1.06)}
 .dl-chip option{color:CanvasText;background:Canvas}
-.mirrors{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
-.mirrors a{flex:1;min-width:84px;text-align:center;text-decoration:none;font-size:12.5px;
-  color:var(--text2);background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius-xs);padding:7px 6px}
-.mirrors a:hover{border-color:var(--border2);color:var(--text)}
-.note{font-size:12px;color:var(--text3);margin-top:11px}
-.note a{color:var(--brand-dim)}
-section.block{margin-top:34px}
-h2{font-size:16px;margin:0 0 10px;letter-spacing:-.2px}
-.fold{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:4px 16px;margin-bottom:10px}
-.fold summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:14px;list-style:none}
+.btn-pri{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+  background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
+  font-family:var(--display);font-weight:800;font-size:15.5px;letter-spacing:.01em;
+  padding:14px 16px;border-radius:var(--radius-sm);transition:filter .18s;
+  box-shadow:0 10px 26px -12px rgba(224,128,79,.7)}
+.btn-pri::before{content:"↓";font-family:var(--mono);font-weight:700;opacity:.85}
+.btn-pri:hover{filter:brightness(1.06)}
+.mirrors{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.mirrors a{flex:1;min-width:80px;text-align:center;text-decoration:none;font-size:12px;font-weight:600;
+  color:var(--ink2);background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-xs);
+  padding:8px 6px;transition:.16s}
+.mirrors a:hover{border-color:var(--brand);color:var(--ink)}
+.note{font-size:12px;color:var(--ink3);margin-top:13px;flex:1}
+
+/* ── sections ── */
+.block{margin-top:48px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--brand);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:18px;height:1px;background:var(--brand);opacity:.6}
+h2{font-family:var(--display);font-weight:700;font-size:21px;margin:0 0 14px;letter-spacing:-.015em}
+.fold{border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:9px;
+  background:var(--panel);overflow:hidden;transition:border-color .18s}
+.fold:hover{border-color:var(--line2)}
+.fold summary{cursor:pointer;padding:14px 17px;font-weight:600;font-size:14px;list-style:none;
+  display:flex;align-items:center;gap:10px}
 .fold summary::-webkit-details-marker{display:none}
-.fold summary::before{content:"▸ ";color:var(--brand)}
-.fold[open] summary::before{content:"▾ "}
-.fold .body{padding:0 0 14px;color:var(--text2);font-size:13.5px}
-.fold .body ol{margin:6px 0;padding-left:20px}
-.fold .body li{margin:4px 0}
-code,.cmd{font-family:var(--mono);font-size:12.5px}
-.cmd{display:block;background:#161310;color:#e9e2d6;border:1px solid var(--border);
-  border-radius:var(--radius-xs);padding:11px 13px;margin:8px 0;overflow-x:auto;white-space:pre}
-@media (prefers-color-scheme:light){.cmd{background:#2a261f;color:#f4f1ea}}
-.copy{float:right;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
-  font:inherit;font-size:11px;padding:3px 9px;border-radius:7px;cursor:pointer;margin-left:8px}
-footer{margin-top:40px;color:var(--text3);font-size:12.5px;text-align:center}
-footer a{color:var(--brand-dim)}
-.hide{display:none}
+.fold summary::before{content:"+";font-family:var(--mono);color:var(--brand);font-weight:700;
+  font-size:16px;transition:transform .2s;width:14px;text-align:center}
+.fold[open] summary::before{content:"–"}
+.fold .body{padding:0 17px 16px;color:var(--ink2);font-size:13.6px}
+.fold .body ol{margin:4px 0;padding-left:20px}
+.fold .body li{margin:5px 0}
+.fold .body b{color:var(--ink)}
+
+/* terminal-window command blocks */
+code{font-family:var(--mono);font-size:12.5px;color:var(--brand2)}
+.term{margin:9px 0 0;border:1px solid var(--line);border-radius:var(--radius-xs);overflow:hidden;
+  background:#0f0c07}
+@media (prefers-color-scheme:light){.term{background:#241d15}}
+.term-bar{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.term-bar i{width:10px;height:10px;border-radius:50%;background:#3a342b}
+.term-bar i:nth-child(1){background:#e8804f}.term-bar i:nth-child(2){background:#d9b66a}
+.term-bar i:nth-child(3){background:#a7c083}
+.term-bar span{margin-left:6px;font-family:var(--mono);font-size:10.5px;color:#7c7264;letter-spacing:.05em}
+.cmd{display:block;font-family:var(--mono);font-size:12.5px;color:#ece3d4;
+  padding:13px 14px;overflow-x:auto;white-space:pre;line-height:1.7}
+.cmd .p{color:var(--brand2);-webkit-user-select:none;user-select:none}
+.copy{float:right;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#ccc2b2;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;
+  cursor:pointer;margin-left:10px;transition:.16s}
+.copy:hover{border-color:var(--brand);color:#fff}
+.hint{font-size:13px;color:var(--ink3);margin:14px 0 4px}
+
+footer{margin-top:54px;padding-top:22px;border-top:1px solid var(--line);
+  color:var(--ink3);font-size:12.5px;text-align:center}
+footer a{color:var(--brand);text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opacity:.85}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header>
-  <div class="logo">✦</div>
-  <div>
-    <h1>Coding Agent — Go Go Go</h1>
-    <p class="sub" data-i="sub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</p>
-  </div>
+
+<div class="top rv d1">
+  <div class="logo">›<b></b></div>
+  <div class="kicker">GO · GO · GO</div>
   <div class="langsw" id="langsw">
     <button data-lang="zh" class="active">中文</button>
     <button data-lang="en">EN</button>
   </div>
-</header>
+</div>
 
-<p class="lead" data-i="lead">下载安装包，双击就能装好 Claude Code / Codex / Gemini，并接上国产大模型。不用敲命令，不用翻墙。</p>
+<h1 class="wordmark rv d2">Coding&nbsp;Agent <span class="gogo"><span>go</span><span>go</span><span>go</span></span></h1>
+<p class="sub rv d2" data-i="sub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</p>
+<p class="lead rv d3" data-i="lead">下载安装包，双击就能装好 Claude Code / Codex / Gemini，并接上国产大模型。不用敲命令，不用翻墙。</p>
 
 <div class="cards">
   <!-- macOS -->
-  <div class="card" id="card-mac">
+  <div class="card rv d4" id="card-mac">
     <span class="badge" data-i="yourSystem">你的系统</span>
     <div class="os">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 1.3c.1 1-.3 2-.9 2.8-.7.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.6-.8 1.7-1.3 2.6-1.4zM19 17.2c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.5-3.7-2.9C1 17.1.7 12.5 2.3 10c.9-1.4 2.4-2.3 3.9-2.3 1.5 0 2.5 1 3.7 1 1.2 0 2-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.9 7.7z"/></svg>
@@ -133,14 +233,14 @@ footer a{color:var(--brand-dim)}
   </div>
 
   <!-- Windows -->
-  <div class="card" id="card-win">
+  <div class="card rv d5" id="card-win">
     <span class="badge" data-i="yourSystem">你的系统</span>
     <div class="os">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM10.5 12.5v7.1L3 18.5v-6zM11.5 4.3 21 3v8.5h-9.5zM21 12.5V21l-9.5-1.3v-7.2z"/></svg>
       Windows
     </div>
     <div class="arch" data-i="winArch">Windows 10 / 11 (64 位) · .exe</div>
-    <a class="btn btn-pri" id="dl-win" data-i="dlWin" href="#">下载 Windows 版 (.exe)</a>
+    <a class="btn-pri" id="dl-win" data-i="dlWin" href="#">下载 Windows 版 (.exe)</a>
     <div class="mirrors">
       <a id="win-m1" href="#" data-i="mirror1">国内镜像</a>
       <a id="win-m2" href="#" data-i="mirror2">备用镜像</a>
@@ -150,7 +250,8 @@ footer a{color:var(--brand-dim)}
   </div>
 </div>
 
-<section class="block">
+<section class="block rv d6">
+  <div class="eyebrow" data-i="ebHelp">遇到问题</div>
   <h2 data-i="openTitle">打不开 / 提示有风险？</h2>
   <details class="fold" id="fold-mac">
     <summary data-i="macOpenSum">macOS：提示「无法打开，来自身份不明的开发者」</summary>
@@ -158,7 +259,7 @@ footer a{color:var(--brand-dim)}
       <p data-i="macOpenBody">安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：</p>
       <ol>
         <li data-i="macStep1">打开下载好的 .dmg。</li>
-        <li data-i="macStep2">在「应用程序」里 <b>右键点它 → 打开</b>，再在弹窗里点「打开」。</li>
+        <li data-i="macStep2">右键点里面的「Coding Agent Installer」→「打开」，再点一次「打开」（不用拖进「应用程序」，跑一次就行）。</li>
         <li data-i="macStep3">还不行就去「系统设置 → 隐私与安全性」，找到拦截提示点「仍要打开」。</li>
       </ol>
     </div>
@@ -177,25 +278,32 @@ footer a{color:var(--brand-dim)}
     <summary data-i="verifySum">想校验文件完整性 (SHA-256)</summary>
     <div class="body">
       <p data-i="verifyBody">每个安装包都附一个 <code>.sha256</code> 文件。对比哈希值一致即可放心运行。</p>
-      <span class="cmd" id="verify-cmd"></span>
+      <div class="term"><div class="term-bar"><i></i><i></i><i></i><span>verify</span></div><span class="cmd" id="verify-cmd"></span></div>
     </div>
   </details>
 </section>
 
-<section class="block">
+<section class="block rv d6">
+  <div class="eyebrow" data-i="ebCli">进阶</div>
   <h2 data-i="cliTitle">会用命令行？一行直接装（不用下载安装包）</h2>
-  <p class="sub" data-i="cliMac" style="margin:10px 0 4px">macOS / Linux / WSL — 打开终端粘贴回车：</p>
-  <span class="cmd">bash &lt;(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)<button class="copy" data-cmd="bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)" data-i="copy">复制</button></span>
-  <p class="sub" data-i="cliWin" style="margin:14px 0 4px">Windows — 打开 PowerShell 粘贴回车：</p>
-  <span class="cmd">irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex<button class="copy" data-cmd="irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex" data-i="copy">复制</button></span>
+  <p class="hint" data-i="cliMac">macOS / Linux / WSL — 打开终端粘贴回车：</p>
+  <div class="term">
+    <div class="term-bar"><i></i><i></i><i></i><span>bash</span></div>
+    <span class="cmd"><span class="p">$ </span>bash &lt;(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)<button class="copy" data-cmd="bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)" data-i="copy">复制</button></span>
+  </div>
+  <p class="hint" data-i="cliWin">Windows — 打开 PowerShell 粘贴回车：</p>
+  <div class="term">
+    <div class="term-bar"><i></i><i></i><i></i><span>powershell</span></div>
+    <span class="cmd"><span class="p">&gt; </span>irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex<button class="copy" data-cmd="irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex" data-i="copy">复制</button></span>
+  </div>
 </section>
 
-<footer>
+<footer class="rv d6">
   <p>
     <a href="https://github.com/huhetingadday-boop/coding-agent-go" data-i="ghRepo">GitHub 项目主页</a> ·
     <a href="https://github.com/huhetingadday-boop/coding-agent-go/releases/latest" data-i="allDownloads">查看全部下载</a>
   </p>
-  <p data-i="privacy">你的 API Key 只在本机和大模型厂商之间走，绝不会发给作者或任何第三方。</p>
+  <p class="lock"><span aria-hidden="true">🔒</span> <span data-i="privacy">你的 API Key 只在本机和大模型厂商之间走，绝不会发给作者或任何第三方。</span></p>
 </footer>
 </div>
 
@@ -249,6 +357,7 @@ var I={
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
+    ebHelp:"遇到问题", ebCli:"进阶",
     openTitle:"打不开 / 提示有风险？",
     macOpenSum:"macOS：提示「无法打开，来自身份不明的开发者」",
     macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：",
@@ -277,6 +386,7 @@ var I={
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
+    ebHelp:"Troubleshooting", ebCli:"Advanced",
     openTitle:"Won't open / flagged as risky?",
     macOpenSum:"macOS: “can’t be opened — unidentified developer”",
     macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open:",
@@ -302,9 +412,9 @@ function applyLang(L){
   document.querySelectorAll("[data-i]").forEach(function(el){
     var k=el.getAttribute("data-i"); if(I[L][k]!==undefined) el.textContent=I[L][k];
   });
-  document.getElementById("verify-cmd").textContent =
-    (L==="zh"?"# macOS：":"# macOS: ")+"shasum -a 256 -c "+MAC+".sha256\n"+
-    (L==="zh"?"# Windows (PowerShell)：":"# Windows (PowerShell): ")+
+  document.getElementById("verify-cmd").innerHTML =
+    '<span class="p"># </span>'+(L==="zh"?"macOS：":"macOS: ")+"shasum -a 256 -c "+MAC_ARM+".sha256\n"+
+    '<span class="p"># </span>'+(L==="zh"?"Windows (PowerShell)：":"Windows (PowerShell): ")+
     "Get-FileHash "+WIN+" -Algorithm SHA256";
   document.querySelectorAll(".langsw button").forEach(function(b){
     b.classList.toggle("active", b.getAttribute("data-lang")===L);
@@ -316,6 +426,7 @@ document.getElementById("langsw").addEventListener("click",function(e){
 });
 document.addEventListener("click",function(e){
   var b=e.target.closest(".copy"); if(!b) return;
+  e.preventDefault();
   var txt=b.getAttribute("data-cmd");
   var done=function(){var o=b.textContent;b.textContent=(document.documentElement.lang==="en"?"Copied ✓":"已复制 ✓");
     setTimeout(function(){b.textContent=o},1500)};
