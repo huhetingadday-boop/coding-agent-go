@@ -264,7 +264,7 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
     <li><span class="num">2</span><span data-i="frWin2">点蓝框里的 <b>「更多信息」</b></span></li>
     <li><span class="num">3</span><span data-i="frWin3">再点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
   </ol>
-  <div class="fr-foot" data-i="frFoot">弹这个是因为安装包没买苹果/微软的付费签名。放行一次之后就正常了，安全无害。</div>
+  <div class="fr-foot" data-i="frFoot">弹这个不是软件有问题：本项目是免费开源的，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。</div>
 </section>
 
 <section class="block rv d6">
@@ -273,7 +273,7 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
   <details class="fold" id="fold-mac">
     <summary data-i="macOpenSum">macOS：提示「无法打开，来自身份不明的开发者」</summary>
     <div class="body">
-      <p data-i="macOpenBody">安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）。新版 macOS（Sequoia）已经去掉了「右键→打开」这个老办法，请走下面这条，所有版本都管用：</p>
+      <p data-i="macOpenBody">本项目免费开源，没花钱给苹果交签名「税」（开发者一年 $99），所以首次打开要手动放行一次，并不是软件有问题。新版 macOS（Sequoia）已经去掉了「右键→打开」这个老办法，请走下面这条，所有版本都管用：</p>
       <ol>
         <li data-i="macStep1">双击安装包，弹出「无法打开…」时点 <b>「完成」</b>（<b>不要点「移到废纸篓」</b>）。</li>
         <li data-i="macStep2">打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。</li>
@@ -392,10 +392,10 @@ var I={
     frMac1:"弹出「无法打开」时点「完成」（千万别点「移到废纸篓」）", frMac2:"打开 系统设置 → 隐私与安全性，拉到最下面", frMac3:"找到拦截提示，点", frMac3b:"，再确认一次",
     frWin1:"出现蓝框「Windows 已保护你的电脑」", frWin2:"点蓝框里的「更多信息」", frWin3:"再点",
     mockOpen:"仍要打开", mockRun:"仍要运行",
-    frFoot:"弹这个是因为安装包没买苹果/微软的付费签名；放行一次之后就正常了，安全无害。",
+    frFoot:"弹这个不是软件有问题：本项目免费开源，没花钱给苹果/微软交签名「税」（苹果开发者一年 $99），系统才会拦一下。放行一次之后就正常了，安全无害。",
     openTitle:"打不开 / 提示有风险？",
     macOpenSum:"macOS：提示「无法打开」「来自身份不明的开发者」",
-    macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）。新版 macOS（Sequoia）已去掉「右键→打开」这个老办法，请走下面这条，所有版本都管用：",
+    macOpenBody:"本项目免费开源，没花钱给苹果交签名「税」（开发者一年 $99），所以首次打开要手动放行一次，并不是软件有问题。新版 macOS（Sequoia）已去掉「右键→打开」这个老办法，请走下面这条，所有版本都管用：",
     macStep1:"双击安装包，弹出「无法打开…」时点「完成」（不要点「移到废纸篓」）。",
     macStep2:"打开「系统设置 → 隐私与安全性」，往下拉到「安全性」那一段。",
     macStep3:"看到「已阻止使用 Coding Agent Installer」，点旁边的「仍要打开」，按提示用密码 / Touch ID 确认一次即可。",
@@ -426,10 +426,10 @@ var I={
     frMac1:"When “could not verify” appears, click “Done” (NOT “Move to Trash”)", frMac2:"Open System Settings → Privacy & Security, scroll to the bottom", frMac3:"Find the blocked message and click", frMac3b:", then confirm once",
     frWin1:"A blue “Windows protected your PC” box appears", frWin2:"Click “More info” in the box", frWin3:"Then click",
     mockOpen:"Open Anyway", mockRun:"Run anyway",
-    frFoot:"This only appears because the installer isn't paid-signed; allow it once and it's fine — it's safe.",
+    frFoot:"This isn't a problem with the app: it's a free open-source project that hasn't paid Apple/Microsoft's signing “tax” ($99/yr for Apple), so the OS warns once. Allow it once and it's fine — it's safe.",
     openTitle:"Won't open / flagged as risky?",
     macOpenSum:"macOS: “could not be opened” / “unidentified developer”",
-    macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open. Newer macOS (Sequoia) dropped the old right-click→Open trick, so use this path — it works on every version:",
+    macOpenBody:"This is a free open-source project that hasn't paid Apple's signing “tax” ($99/yr), so you allow it once on first open — it's not a problem with the app. Newer macOS (Sequoia) dropped the old right-click→Open trick, so use this path — it works on every version:",
     macStep1:"Double-click the installer; when “could not be opened…” appears, click “Done” (do NOT click “Move to Trash”).",
     macStep2:"Open System Settings → Privacy & Security and scroll down to the “Security” section.",
     macStep3:"You'll see “Coding Agent Installer was blocked” — click “Open Anyway” next to it, then confirm with your password / Touch ID.",
