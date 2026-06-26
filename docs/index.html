@@ -53,14 +53,17 @@ h1{font-size:25px;margin:0;letter-spacing:-.4px}
   padding:13px 16px;font-weight:700;font-size:15px;margin-top:12px}
 .btn-pri{background:var(--brand);color:#fff}
 .btn-pri:hover{background:var(--brand-dim)}
-.dl-row{display:flex;gap:8px;align-items:stretch;margin-top:12px}
-.dl-row .btn{flex:1;margin-top:0}
-.chip-sel{flex:0 0 auto;max-width:46%;border:1px solid var(--border2);background:var(--surface2);
-  color:var(--text);font:inherit;font-size:13px;font-weight:600;border-radius:var(--radius-sm);
-  padding:0 32px 0 13px;cursor:pointer;-webkit-appearance:none;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%23847c6d' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E");
+.dl-split{display:flex;align-items:stretch;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden}
+.dl-go{flex:1;background:var(--brand);color:#fff;font-weight:700;font-size:15px;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;padding:13px 12px}
+.dl-go:hover{background:var(--brand-dim)}
+.dl-chip{flex:0 0 auto;border:0;border-left:1px solid rgba(255,255,255,.4);
+  background-color:var(--brand);color:#fff;font:inherit;font-size:12.5px;font-weight:700;
+  padding:0 30px 0 14px;cursor:pointer;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 11px center;background-size:11px}
-.chip-sel:hover{border-color:var(--brand)}
+.dl-chip:hover{background-color:var(--brand-dim)}
+.dl-chip option{color:CanvasText;background:Canvas}
 .mirrors{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
 .mirrors a{flex:1;min-width:84px;text-align:center;text-decoration:none;font-size:12.5px;
   color:var(--text2);background:var(--surface2);border:1px solid var(--border);
@@ -115,10 +118,10 @@ footer a{color:var(--brand-dim)}
       macOS
     </div>
     <div class="arch" data-i="macArch">选好芯片再下载 · .dmg</div>
-    <div class="dl-row">
-      <a class="btn btn-pri" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
-      <select id="mac-chip" class="chip-sel" title="不确定芯片？点屏幕左上角  →「关于本机」看「芯片」" aria-label="选择芯片">
-        <option value="arm64" data-i="optArm">Apple 芯片 (M1–M4)</option>
+    <div class="dl-split">
+      <a class="dl-go" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
+      <select id="mac-chip" class="dl-chip" title="不确定芯片？点屏幕左上角  →「关于本机」看「芯片」" aria-label="选择芯片">
+        <option value="arm64" data-i="optArm">Apple 芯片</option>
         <option value="intel" data-i="optIntel">Intel 芯片</option>
       </select>
     </div>
@@ -242,7 +245,7 @@ var I={
     lead:"下载安装包，双击就能装好 Claude Code / Codex / Gemini，并接上国产大模型。不用敲命令，不用翻墙。",
     yourSystem:"你的系统",
     macArch:"选好芯片再下载 · .dmg", winArch:"Windows 10 / 11 (64 位) · .exe",
-    dlMac:"下载 .dmg", optArm:"Apple 芯片 (M1–M4)", optIntel:"Intel 芯片", dlWin:"下载 Windows 版 (.exe)",
+    dlMac:"下载 .dmg", optArm:"Apple 芯片", optIntel:"Intel 芯片", dlWin:"下载 Windows 版 (.exe)",
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
@@ -270,7 +273,7 @@ var I={
     lead:"Download the installer and double-click to set up Claude Code / Codex / Gemini on China LLMs. No commands, no VPN.",
     yourSystem:"Your system",
     macArch:"Pick your chip, then download · .dmg", winArch:"Windows 10 / 11 (64-bit) · .exe",
-    dlMac:"Download .dmg", optArm:"Apple Silicon (M1–M4)", optIntel:"Intel", dlWin:"Download for Windows (.exe)",
+    dlMac:"Download .dmg", optArm:"Apple Silicon", optIntel:"Intel", dlWin:"Download for Windows (.exe)",
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
