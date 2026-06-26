@@ -478,6 +478,10 @@ class UnitTest(unittest.TestCase):
         finally:
             server._download = orig
 
+    @unittest.skipIf(os.name == "nt",
+                     "PATH persistence is a macOS/Linux feature (Windows uses the "
+                     "registry); Path.home() ignores $HOME on Windows, so this test "
+                     "can't redirect writes to a temp dir there.")
     def test_persist_unix_path_idempotent(self):
         """The rustup-style PATH persister must add the bin dir to the shell
         profile exactly once, even if called repeatedly."""
