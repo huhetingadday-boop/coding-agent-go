@@ -40,6 +40,7 @@
 }}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}  /* beats .steps{display:flex} etc. */
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
   line-height:1.62;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
@@ -128,6 +129,27 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
   padding:8px 6px;transition:.16s}
 .mirrors a:hover{border-color:var(--brand);color:var(--ink)}
 .note{font-size:12px;color:var(--ink3);margin-top:13px;flex:1}
+
+/* first-open guide (revealed on download click) */
+.firstrun{margin-top:18px;border:1px solid var(--brand);border-radius:var(--radius);
+  background:linear-gradient(180deg,var(--brand-bg),transparent),var(--panel);
+  padding:18px 20px;box-shadow:0 0 44px -16px var(--glow)}
+.firstrun.pulse{animation:frpulse 1.1s ease 2}
+@keyframes frpulse{0%,100%{box-shadow:0 0 44px -16px var(--glow)}50%{box-shadow:0 0 50px -4px var(--glow)}}
+.fr-head{display:flex;align-items:center;gap:9px;font-size:15px;margin-bottom:14px;
+  font-family:var(--display);font-weight:700}
+.fr-check{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:14px}
+.steps{list-style:none;margin:0;padding:0;display:flex;gap:10px;flex-wrap:wrap}
+.steps li{flex:1;min-width:160px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink2);
+  background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px}
+.steps li b{color:var(--ink)}
+.num{width:22px;height:22px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:12px}
+.mockbtn{display:inline-block;background:linear-gradient(180deg,var(--brand2),var(--brand));
+  color:var(--brand-ink);font-weight:700;font-size:12.5px;padding:3px 12px;border-radius:7px;white-space:nowrap;
+  box-shadow:0 0 0 2px var(--glow),0 4px 12px -5px rgba(224,128,79,.8)}
+.fr-foot{margin-top:13px;font-size:12px;color:var(--ink3)}
 
 /* ── sections ── */
 .block{margin-top:48px}
@@ -229,6 +251,22 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
   </div>
 </div>
 
+<!-- first-open guide: revealed + scrolled-to the moment a download is clicked -->
+<section id="firstrun" class="firstrun" hidden>
+  <div class="fr-head"><span class="fr-check">↓</span> <b data-i="frTitle">下载中…第一次打开这样放行（只需一次）</b></div>
+  <ol class="steps" id="fr-mac">
+    <li><span class="num">1</span><span data-i="frMac1">在下载好的安装包上 <b>右键点一下</b>（或按住 Control 点）</span></li>
+    <li><span class="num">2</span><span data-i="frMac2">菜单里选 <b>「打开」</b></span></li>
+    <li><span class="num">3</span><span data-i="frMac3">弹窗里再点一次</span> <span class="mockbtn" data-i="mockOpen">打开</span></li>
+  </ol>
+  <ol class="steps" id="fr-win" hidden>
+    <li><span class="num">1</span><span data-i="frWin1">蓝框「Windows 已保护你的电脑」</span></li>
+    <li><span class="num">2</span><span data-i="frWin2">点蓝框里的 <b>「更多信息」</b></span></li>
+    <li><span class="num">3</span><span data-i="frWin3">再点</span> <span class="mockbtn" data-i="mockRun">仍要运行</span></li>
+  </ol>
+  <div class="fr-foot" data-i="frFoot">弹这个是因为安装包没买苹果/微软的付费签名。放行一次之后就正常了，安全无害。</div>
+</section>
+
 <section class="block rv d6">
   <div class="eyebrow" data-i="ebHelp">遇到问题</div>
   <h2 data-i="openTitle">打不开 / 提示有风险？</h2>
@@ -321,6 +359,23 @@ document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
     cards.prepend(document.getElementById("card-mac"));}
 })();
 
+// First-open guide: the moment a download link is clicked, reveal the steps for
+// that card's OS and scroll to them — so the Gatekeeper/SmartScreen prompt is
+// never a surprise.
+(function(){
+  var fr=document.getElementById("firstrun");
+  function show(os){
+    document.getElementById("fr-mac").hidden = (os!=="mac");
+    document.getElementById("fr-win").hidden = (os!=="win");
+    fr.hidden=false;
+    fr.scrollIntoView({behavior:"smooth",block:"center"});
+    fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
+  }
+  var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
+  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
+  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
+})();
+
 // ── i18n ──
 var I={
   zh:{
@@ -333,6 +388,11 @@ var I={
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
     ebHelp:"遇到问题", ebCli:"进阶",
+    frTitle:"下载中…第一次打开这样放行（只需一次）",
+    frMac1:"在下载的安装包上右键点一下（或按住 Control 点）", frMac2:"在菜单里选「打开」", frMac3:"弹窗里再点一次",
+    frWin1:"出现蓝框「Windows 已保护你的电脑」", frWin2:"点蓝框里的「更多信息」", frWin3:"再点",
+    mockOpen:"打开", mockRun:"仍要运行",
+    frFoot:"弹这个是因为安装包没买苹果/微软的付费签名；放行一次之后就正常了，安全无害。",
     openTitle:"打不开 / 提示有风险？",
     macOpenSum:"macOS：提示「无法打开，来自身份不明的开发者」",
     macOpenBody:"安装包没有花钱买苹果签名，所以首次打开要手动放行（只需一次）：",
@@ -362,6 +422,11 @@ var I={
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
     ebHelp:"Troubleshooting", ebCli:"Advanced",
+    frTitle:"Downloading… here's how to open it the first time (just once)",
+    frMac1:"Right-click (or Control-click) the downloaded installer", frMac2:"Choose “Open” from the menu", frMac3:"In the dialog, click once more",
+    frWin1:"A blue “Windows protected your PC” box appears", frWin2:"Click “More info” in the box", frWin3:"Then click",
+    mockOpen:"Open", mockRun:"Run anyway",
+    frFoot:"This only appears because the installer isn't paid-signed; allow it once and it's fine — it's safe.",
     openTitle:"Won't open / flagged as risky?",
     macOpenSum:"macOS: “can’t be opened — unidentified developer”",
     macOpenBody:"The app isn’t paid-signed by Apple, so allow it once on first open:",
