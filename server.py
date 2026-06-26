@@ -116,7 +116,7 @@ HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>AI Coding — Go Go Go</title>
+<title>Coding Agent — Go Go Go</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    Design tokens — dark default, light via prefers-color-scheme
@@ -527,7 +527,7 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 4c.7 5.3 1.7 7.3 7 8-5.3.7-6.3 2.7-7 8-.7-5.3-1.7-7.3-7-8 5.3-.7 6.3-2.7 7-8Z" fill="currentColor"/></svg>
   </div>
   <div>
-    <div class="header-title">AI Coding — Go Go Go</div>
+    <div class="header-title">Coding Agent — Go Go Go</div>
     <div class="header-sub" id="hdrSub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</div>
   </div>
 </header>
@@ -3116,7 +3116,7 @@ def main():
         webview = None
     if webview is not None:
         try:
-            webview.create_window("AI Coding — Go Go Go", url,
+            webview.create_window("Coding Agent — Go Go Go", url,
                                    width=980, height=760, min_size=(720, 600))
             webview.start()   # blocks on the GUI loop; returns when the window closes
             return            # window closed → exit; the daemon server dies with us

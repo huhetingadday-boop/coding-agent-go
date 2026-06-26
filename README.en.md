@@ -78,7 +78,7 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 ## Installer won't open
 The binaries aren't paid-signed by Apple/Microsoft, so the OS may block the first open. Allow it once and it's fine after that.
 ### macOS: "can’t be opened — unidentified developer"
-- Open the downloaded .dmg, **right-click "AI Coding Installer" inside → "Open"**, then click "Open" in the dialog (no need to move it to Applications — it's run-once).
+- Open the downloaded .dmg, **right-click "Coding Agent Installer" inside → "Open"**, then click "Open" in the dialog (no need to move it to Applications — it's run-once).
 - Still blocked? System Settings → "Privacy & Security" → "Open Anyway".
 ### Windows: SmartScreen blue box / antivirus block
 360 / 电脑管家 / Windows SmartScreen sometimes block the `.exe`, the PowerShell script, or the background proxy. If that happens:
