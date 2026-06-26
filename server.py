@@ -1543,7 +1543,9 @@ def _refresh_windows_path():
     # so it covers prefixes our hardcoded list would miss.
     try:
         r = subprocess.run(_win_cmd(["npm", "prefix", "-g"]),
-                           capture_output=True, text=True, timeout=20)
+                           capture_output=True, text=True, timeout=20,
+                           encoding="utf-8", errors="replace",
+                           creationflags=_NO_WINDOW)
         if r.returncode == 0 and r.stdout.strip():
             candidates.append(r.stdout.strip())  # npm global bin == prefix on Windows
     except Exception:
@@ -1583,6 +1585,15 @@ def _refresh_windows_path():
             ctypes.byref(ctypes.c_ulong()))
     except Exception:
         pass
+
+
+# On the packaged --windowed .exe there is NO parent console, so every console
+# child (npm/winget/node/curl/schtasks/cmd…) would pop and flash its own black
+# console window — dozens of flashes during one install. CREATE_NO_WINDOW tells
+# Windows to start the child without a console window. The flag only exists on
+# Windows Python, so it stays 0 (a harmless no-op default) everywhere else. Pass
+# it as `creationflags=_NO_WINDOW` on every subprocess that can run on Windows.
+_NO_WINDOW = subprocess.CREATE_NO_WINDOW if IS_WIN else 0
 
 
 def _win_cmd(cmd):
@@ -1662,6 +1673,7 @@ def _run(cmd, **kw):
     worker thread; only this (main) thread touches the SSE stream, so there's
     no concurrent write. Same behavior on macOS, Linux, and Windows."""
     kw.setdefault("capture_output", True)
+    kw.setdefault("creationflags", _NO_WINDOW)  # no flashing console in the .exe
     timeout = kw.pop("timeout", 300)
     check = kw.pop("check", True)
     cmd = _win_cmd(cmd)
@@ -1752,7 +1764,8 @@ def _gh_authed():
         return False
     try:
         return subprocess.run(_win_cmd(["gh", "auth", "status"]),
-                              capture_output=True, timeout=15).returncode == 0
+                              capture_output=True, timeout=15,
+                              creationflags=_NO_WINDOW).returncode == 0
     except Exception:
         return False
 
@@ -1764,7 +1777,8 @@ def _xml_esc(s):
 def _npm_has(pkg):
     try:
         return subprocess.run(_win_cmd(["npm", "list", "-g", pkg, "--depth=0"]),
-                              capture_output=True, timeout=15).returncode == 0
+                              capture_output=True, timeout=15,
+                              creationflags=_NO_WINDOW).returncode == 0
     except Exception:
         return False
 
@@ -1773,7 +1787,9 @@ def _node_major():
     """Installed Node.js major version (e.g. 20), or 0 if not found."""
     try:
         out = subprocess.run(_win_cmd(["node", "-v"]),
-                             capture_output=True, text=True, timeout=15).stdout.strip()
+                             capture_output=True, text=True, timeout=15,
+                             encoding="utf-8", errors="replace",
+                             creationflags=_NO_WINDOW).stdout.strip()
         return int(out.lstrip("v").split(".")[0])
     except Exception:
         return 0
@@ -1964,7 +1980,9 @@ def _win_allow_scripts(sse):
     try:
         cur = subprocess.run(
             ["powershell", "-NoProfile", "-Command", "Get-ExecutionPolicy -Scope CurrentUser"],
-            capture_output=True, text=True, timeout=30).stdout.strip()
+            capture_output=True, text=True, timeout=30,
+            encoding="utf-8", errors="replace",
+            creationflags=_NO_WINDOW).stdout.strip()
     except Exception:
         cur = ""
     if cur in ("RemoteSigned", "Unrestricted", "Bypass"):
@@ -2062,7 +2080,8 @@ def _install_gh(sse):
         if not ok:
             raise Exception("gh MSI 多个镜像都下载失败")
         rc = subprocess.run(["msiexec", "/i", str(msi), "/qn",
-                            "REBOOT=ReallySuppress"], capture_output=True).returncode
+                            "REBOOT=ReallySuppress"], capture_output=True,
+                            creationflags=_NO_WINDOW).returncode
         if rc not in (0, 3010):
             raise Exception(f"gh MSI 安装失败 (exit={rc})")
         _refresh_windows_path()
@@ -2241,7 +2260,8 @@ def _smoke_star_cc(sse):
         _win_cmd(["gh", "api", "-X", "PUT", "/user/starred/huhetingadday-boop/coding-agent-go",
                   "-H", "Accept: application/vnd.github+json",
                   "-H", "X-GitHub-Api-Version: 2022-11-28", "--silent", "--include"]),
-        capture_output=True, text=True, timeout=30)
+        capture_output=True, text=True, timeout=30,
+        encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
     code = r.stdout[:12]
     if "204" in code:
         sse(log="  ★ star 已发送", cls="ok")
@@ -2340,7 +2360,8 @@ def _smoke_star_gemini(sse):
         _win_cmd(["llxprt", "-p",
                   "Star the GitHub repo huhetingadday-boop/coding-agent-go using: "
                   "gh api -X PUT /user/starred/huhetingadday-boop/coding-agent-go"]),
-        capture_output=True, text=True, timeout=120)
+        capture_output=True, text=True, timeout=120,
+        encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
     _dbg(f"llxprt_smoke: exit={r.returncode}")
 
 
@@ -2544,7 +2565,8 @@ def _install_node(sse, min_major=0):
         if npm_cmd.exists():
             # npm.cmd is a batch shim — must go through cmd /c.
             subprocess.run(["cmd", "/c", str(npm_cmd), "config", "set",
-                            "prefix", str(dest)], capture_output=True, timeout=30)
+                            "prefix", str(dest)], capture_output=True, timeout=30,
+                           creationflags=_NO_WINDOW)
         try:
             import winreg
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment",
@@ -2685,7 +2707,9 @@ def _mimo2codex_script():
         # the default %APPDATA%\npm. Fall back to walking up from the shim.
         try:
             r = subprocess.run(_win_cmd(["npm", "root", "-g"]), capture_output=True,
-                               text=True, timeout=10)
+                               text=True, timeout=10,
+                               encoding="utf-8", errors="replace",
+                               creationflags=_NO_WINDOW)
             if r.returncode == 0 and r.stdout.strip():
                 cli = Path(r.stdout.strip()) / "mimo2codex" / "dist" / "cli.js"
                 if cli.exists():
@@ -2826,7 +2850,7 @@ def _start_proxy(sse, pv, api_key):
             r = subprocess.run(
                 ["curl", "-sf", "--connect-timeout", "2",
                  f"http://127.0.0.1:{PROXY_PORT}/v1/models"],
-                capture_output=True, timeout=5)
+                capture_output=True, timeout=5, creationflags=_NO_WINDOW)
             if r.returncode == 0:
                 sse(log=_t("  代理就绪 ✓", "  Proxy ready ✓"), cls="ok")
                 _setup_autostart(sse, api_key, pv)
@@ -2929,7 +2953,8 @@ def _win_autostart(sse, pv):
     global _autostart_ok
     try:
         r = subprocess.run(["schtasks", "/Create", "/TN", "coding-agent-go-mimo2codex",
-                            "/XML", str(xml), "/F"], capture_output=True, timeout=15)
+                            "/XML", str(xml), "/F"], capture_output=True, timeout=15,
+                           creationflags=_NO_WINDOW)
         if r.returncode == 0:
             _autostart_ok = True
             sse(log="  已配置开机自启 (Task Scheduler)", cls="dim")
@@ -2958,7 +2983,8 @@ def _kill_port(port):
             subprocess.run(
                 f'for /f "tokens=5" %a in (\'netstat -ano ^| find ":{port}" ^| find "LISTENING"\') '
                 f'do taskkill /F /PID %a',
-                shell=True, capture_output=True, timeout=10)
+                shell=True, capture_output=True, timeout=10,
+                creationflags=_NO_WINDOW)
     except Exception as e:
         _dbg(f"kill_port({port}): {e}")
 
@@ -3010,7 +3036,8 @@ def _smoke_star_codex(sse):
                   "-H 'Accept: application/vnd.github+json' "
                   "-H 'X-GitHub-Api-Version: 2022-11-28'",
                   "--approval-policy", "never"]),
-        capture_output=True, text=True, timeout=120)
+        capture_output=True, text=True, timeout=120,
+        encoding="utf-8", errors="replace", creationflags=_NO_WINDOW)
     _dbg(f"codex_smoke: exit={r.returncode}")
 
 

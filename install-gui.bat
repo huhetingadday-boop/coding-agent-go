@@ -27,7 +27,7 @@ rem official MSI as fallback (works without winget or Microsoft Store).
 echo Python 3 is required.
 where winget >nul 2>&1 && (
     echo Installing via winget...
-    winget install --id Python.Python.3 --silent --accept-package-agreements --accept-source-agreements
+    winget install --id Python.Python.3 --silent --source winget --disable-interactivity --accept-package-agreements --accept-source-agreements
     echo Please restart this script after Python installation completes.
     pause
     exit /b 1

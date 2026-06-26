@@ -43,6 +43,7 @@ if (-not $py) {
       # --source winget skips the msstore source, which is the one that most
       # often fails to update behind China networks.
       winget install --id Python.Python.3.12 --silent --source winget `
+        --disable-interactivity `
         --accept-package-agreements --accept-source-agreements
       if ($LASTEXITCODE -eq 0) { $wingetOk = $true }
       else { Write-Host "winget failed (exit $LASTEXITCODE); falling back to python.org..." }
