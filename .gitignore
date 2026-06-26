@@ -17,3 +17,8 @@ yiclaude-verify.*
 *.bak
 *.bak.*
 __pycache__/
+
+# Electron app build artifacts (generated: npm install / PyInstaller / electron-builder)
+app/node_modules/
+app/dist/
+app/sidecar/

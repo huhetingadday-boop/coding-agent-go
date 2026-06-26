@@ -1,0 +1,73 @@
+{
+  "name": "coding-agent",
+  "version": "26.6.2",
+  "description": "Coding Agent — install Claude Code / Codex / Gemini and wire them to China LLMs, in a native window.",
+  "main": "main.js",
+  "author": "coding-agent-go",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.codingagent.app",
+    "productName": "Coding Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "sidecar",
+        "to": "sidecar"
+      }
+    ],
+    "mac": {
+      "icon": "../assets/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Coding Agent",
+      "artifactName": "coding-agent-go-macos.${ext}",
+      "contents": [
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "icon": "../assets/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "coding-agent-go-windows.${ext}"
+    }
+  }
+}

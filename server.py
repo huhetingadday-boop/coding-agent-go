@@ -45,6 +45,10 @@ DEBUG_LOG = Path(tempfile.gettempdir()) / "coding-agent-go-debug.log"
 # daemons so e2e tests exercise routing / planning / config-writing only.
 # Tests also redirect HOME, so config writes never touch the user's real ~/.
 TEST_MODE = os.environ.get("CAG_SELFTEST") == "1"
+# Serve-only mode (CAG_SERVE_ONLY=1): run as the Electron app's Python sidecar —
+# do the REAL installs but never open a webview/browser ourselves; Electron owns
+# the native window and just points it at our local server.
+SERVE_ONLY = os.environ.get("CAG_SERVE_ONLY") == "1"
 PROXY_PORT = 17878
 
 _installing = False
@@ -3110,7 +3114,7 @@ def main():
             print(f"\n  ✓ 安装器已经在运行了，不用重复运行。")
             print(f"  直接在浏览器打开： http://localhost:{port}")
             print(f"  想重新来过：先在原来那个窗口按 Ctrl+C 停掉，再运行本命令。\n")
-            if not TEST_MODE:
+            if not TEST_MODE and not SERVE_ONLY:
                 _open_browser(f"http://localhost:{port}")
             sys.exit(0)
         print(f"  ✗ 端口 {port} 被占用（但不是本工具）: {e}")
@@ -3121,6 +3125,16 @@ def main():
 
     # Self-test: just serve (no window, no browser) so headless CI never blocks.
     if TEST_MODE:
+        try:
+            srv.serve_forever()
+        except KeyboardInterrupt:
+            srv.server_close()
+        return
+
+    # Electron sidecar: do the REAL installs but let Electron own the native
+    # window — just serve here and block; Electron kills us when it quits.
+    if SERVE_ONLY:
+        print(f"  serve-only sidecar on {url}")
         try:
             srv.serve_forever()
         except KeyboardInterrupt:

@@ -1,20 +1,15 @@
 name: build-release
 
-# Builds the double-click installers (no terminal needed) and attaches them to
-# the GitHub Release whenever a version tag is pushed. The piped one-liner stays
-# the primary path; these binaries are the zero-terminal option for true
-# non-technical users. Each artifact ships a SHA-256 so users can verify it.
+# Builds the real desktop app (Electron, like Comet) and attaches it to the
+# GitHub Release on a version tag. The install logic stays in Python (server.py),
+# frozen by PyInstaller into a console "sidecar" binary; Electron spawns it in
+# serve-only mode and shows its UI in a NATIVE Chromium window — no browser, no
+# Python needed on the user's machine. electron-builder packages it as:
 #
-# The apps embed a native webview (pywebview: WKWebView on macOS, WebView2 on
-# Windows), so the UI opens in its own window — it feels like an app, not a
-# browser tab, and closing the window quits cleanly.
+#   Windows -> coding-agent-go-windows.exe   (NSIS installer)
+#   macOS   -> coding-agent-go-macos.dmg      (universal: Intel + Apple Silicon)
 #
-#   Windows -> coding-agent-go-windows.exe   (windowed, WebView2)
-#   macOS   -> coding-agent-go-macos.dmg      (universal2: Intel + Apple Silicon)
-#
-# macOS is built once as a universal2 binary on the Apple-Silicon runner — it
-# runs on both Intel and Apple Silicon, so there's no scarce macos-13 Intel
-# runner in the critical path and users never have to pick a chip.
+# Unsigned, so first open still needs the one-time Gatekeeper/SmartScreen allow.
 on:
   push:
     tags: ['v*']
@@ -30,79 +25,61 @@ jobs:
         include:
           - os: windows-latest
             target: windows
-          - os: macos-latest      # Apple-Silicon runner; builds universal2
+          - os: macos-latest      # Apple-Silicon runner; builds a universal app
             target: macos
     runs-on: ${{ matrix.os }}
-    env:
-      TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'   # setup-python ships a universal2 CPython on macOS
-      - name: Install build deps
-        # pywebview pulls the platform webview backend (pyobjc on macOS — it has
-        # universal2 wheels —, pythonnet/WebView2 interop on Windows).
-        run: python -m pip install --upgrade pip pyinstaller pywebview
-      - name: Build (embedded-webview app)
+      - name: Build the Python sidecar (PyInstaller, console)
         shell: bash
         run: |
           set -euo pipefail
-          # "Coding Agent Installer" so Finder/the taskbar read it as a run-once
-          # installer, not an app to keep around.
-          # pywebview loads its GUI backend by a RUNTIME import (cocoa on macOS,
-          # edgechromium on Windows), which PyInstaller's static analysis misses —
-          # so without --collect-all + an explicit --hidden-import the bundled app
-          # finds no backend and silently falls back to opening a browser. These
-          # flags force the backend (and pyobjc / pythonnet bits) into the bundle
-          # so the app opens its own native window, like a real desktop app.
+          python -m pip install --upgrade pip pyinstaller
+          mkdir -p app/sidecar
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # --windowed = no console; one file. The UI is the WebView2 window.
-            # --icon gives the .exe our brand mark instead of PyInstaller's default.
-            pyinstaller --onefile --windowed --name "Coding Agent Installer" \
-              --icon assets/icon.ico \
-              --collect-all webview \
-              --hidden-import webview.platforms.edgechromium \
+            pyinstaller --onefile --name server \
               --add-data "providers.json;." server.py
+            cp dist/server.exe app/sidecar/server.exe
           else
-            # --windowed makes a real .app bundle; --target-arch universal2 makes
-            # one binary that runs on Intel + Apple Silicon. The UI is WKWebView.
-            # --icon gives the .app our brand mark instead of the default rocket.
-            pyinstaller --windowed --target-arch universal2 --name "Coding Agent Installer" \
-              --icon assets/icon.icns \
-              --collect-all webview \
-              --hidden-import webview.platforms.cocoa \
+            # universal2 so the one universal .dmg runs on Intel + Apple Silicon.
+            pyinstaller --onefile --name server --target-arch universal2 \
               --add-data "providers.json:." server.py
+            cp dist/server app/sidecar/server
+            chmod +x app/sidecar/server
           fi
-      - name: Package + checksum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build the Electron app
         shell: bash
+        working-directory: app
+        env:
+          # No code-signing cert in CI — build unsigned (first-open allow stays).
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           set -euo pipefail
-          cd dist
+          npm install
+          npm run dist
+      - name: Checksums
+        shell: bash
+        working-directory: app/dist
+        run: |
+          set -euo pipefail
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # Stable, URL-safe asset name for the download links.
-            mv "Coding Agent Installer.exe" coding-agent-go-windows.exe
             sha256sum coding-agent-go-windows.exe > coding-agent-go-windows.exe.sha256
           else
-            # The app IS the installer (run-once: it installs the CLIs), so the
-            # .dmg just holds the app to double-click — no drag-to-Applications.
-            # One universal dmg covers both chips.
-            dmg="coding-agent-go-macos.dmg"
-            mkdir -p dmgroot
-            cp -R "Coding Agent Installer.app" dmgroot/
-            hdiutil create -volname "Coding Agent Installer" -srcfolder dmgroot \
-              -fs HFS+ -ov -format UDZO "$dmg"
-            shasum -a 256 "$dmg" > "$dmg.sha256"
-            # sanity: confirm the binary really is universal (x86_64 + arm64)
-            lipo -archs "Coding Agent Installer.app/Contents/MacOS/Coding Agent Installer" || true
+            shasum -a 256 coding-agent-go-macos.dmg > coding-agent-go-macos.dmg.sha256
           fi
       - uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
           path: |
-            dist/coding-agent-go-*.exe
-            dist/coding-agent-go-*.dmg
-            dist/*.sha256
+            app/dist/coding-agent-go-*.dmg
+            app/dist/coding-agent-go-*.exe
+            app/dist/*.sha256
           if-no-files-found: error
 
   release:
@@ -129,5 +106,5 @@ jobs:
           ls -R artifacts
           gh release view "$tag" >/dev/null 2>&1 \
             || gh release create "$tag" \
-                 --title "$tag" --notes "Double-click installers for $tag. Verify with the matching .sha256 before running."
+                 --title "$tag" --notes "Native desktop app for $tag. Verify with the matching .sha256 before running."
           gh release upload "$tag" artifacts/* --clobber
