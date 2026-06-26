@@ -13,7 +13,7 @@ who runs it.
 git tag v1.1.0
 git push origin v1.1.0
 ```
-3. Pushing the tag triggers `build-release.yml`, which builds the double-click installers — `coding-agent-go-windows.exe`, `coding-agent-go-macos-arm64.dmg` (Apple Silicon), and `coding-agent-go-macos-intel.dmg` (Intel) — each with its `.sha256`, and attaches them to the GitHub Release. The apps embed a native webview (pywebview), so the UI opens in its own window, not a browser. The download page's `releases/latest/download/...` links go live as soon as this finishes.
+3. Pushing the tag triggers `build-release.yml`, which builds the double-click installers — `coding-agent-go-windows.exe` and `coding-agent-go-macos.dmg` (one universal2 build for both Intel and Apple Silicon) — each with its `.sha256`, and attaches them to the GitHub Release. The apps embed a native webview (pywebview), so the UI opens in its own window, not a browser. The download page's `releases/latest/download/...` links go live as soon as this finishes.
 4. Refresh the jsdelivr cache so `@latest` resolves to the new tag right away (it caches floating refs for ~12h):
 ```bash
 for f in install-gui.ps1 install-gui.sh install-gui.bat server.py providers.json docs/index.html; do
@@ -30,5 +30,5 @@ curl -s "https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/s
 - Fixed versions (`@v1.0.0`) are immutable and cached for a year — do not use them in the public command, or old posts can never receive a fix.
 - The piped one-liner stays the primary install path; the packaged binaries are the zero-terminal option for non-technical users.
 - Download page: enable it once at repo Settings → Pages → Source → "GitHub Actions" (the `pages.yml` workflow deploys `docs/`). It lives at <https://huhetingadday-boop.github.io/coding-agent-go/>. Pages is required to *render* it — jsDelivr serves `.html` as `text/plain` (shows source), so until Pages is on, the README download section is the no-setup path. The page's download buttons point at `releases/latest/download/...`, so they always track the newest release once one exists.
-- macOS ships two `.dmg`s — `macos-arm64` (built on the `macos-latest` Apple-Silicon runner) and `macos-intel` (built on the `macos-13` Intel runner). The download page shows both buttons because the browser can't reliably detect a Mac's chip; users pick via Apple menu → About This Mac → "Chip".
+- macOS ships ONE `coding-agent-go-macos.dmg` — a universal2 binary built on the `macos-latest` (Apple-Silicon) runner with `--target-arch universal2`, so it runs on both Intel and Apple Silicon. This avoids the scarce/slow `macos-13` Intel runner entirely and means users never pick a chip. (pyobjc ships universal2 wheels and setup-python's macOS CPython is universal2, so the build resolves cleanly.) The `release` job uses `if: always()`, so a hiccup on one OS still publishes the other.
 - The packaged app is a run-once installer (the `.dmg` holds just the app to double-click — no drag-to-Applications). Unsigned, so first open needs the one-time Gatekeeper/SmartScreen allow (documented in both READMEs).

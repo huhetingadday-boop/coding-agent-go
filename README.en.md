@@ -7,11 +7,10 @@ One command to install Claude Code / OpenAI Codex / Gemini CLI inside mainland C
 ## Download an installer (double-click, no terminal)
 Best for non-technical users: download, double-click, done — no terminal, no VPN. It's a run-once installer (the UI is an embedded webview, no browser needed).
 - 📥 **Download page (auto-detects your OS)**: <https://huhetingadday-boop.github.io/coding-agent-go/>
-- 🍎 **macOS · Apple Silicon (M1/M2/M3/M4)**: [China mirror .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-arm64.dmg) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-arm64.dmg)
-- 🍎 **macOS · Intel**: [China mirror .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-intel.dmg) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-intel.dmg)
+- 🍎 **macOS (universal — Intel & Apple Silicon)**: [China mirror .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg)
 - 🪟 **Windows 10 / 11 (64-bit)**: [China mirror .exe](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe)
 
-Double-click after downloading; an install window opens — follow it, then close the window when done. If the first open is blocked ("unidentified developer" on macOS, or a SmartScreen box on Windows), see [Installer won't open](#installer-wont-open). Not sure which Mac chip? Apple menu  → About This Mac → "Chip". Binaries come from [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest), each with a SHA-256; the download page and binaries appear after the first version tag is built.
+Double-click after downloading; an install window opens — follow it, then close the window when done. If the first open is blocked ("unidentified developer" on macOS, or a SmartScreen box on Windows), see [Installer won't open](#installer-wont-open). The macOS build is universal — it runs on both Intel and Apple Silicon, so there's nothing to pick. Binaries come from [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest), each with a SHA-256; the download page and binaries appear after the first version tag is built.
 
 ## Demo
 <!--

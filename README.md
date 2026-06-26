@@ -7,11 +7,10 @@
 ## 下载安装包（双击运行，最适合电脑小白）
 不会敲命令也没关系：下载下来双击就跑，不用开终端、不用翻墙。它是一个一键安装器（应用内置网页，不依赖浏览器），跑一次装好就行。
 - 📥 **下载页（自动识别系统）**：<https://huhetingadday-boop.github.io/coding-agent-go/>
-- 🍎 **macOS · Apple 芯片 (M1/M2/M3/M4)**：[国内镜像 .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-arm64.dmg) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-arm64.dmg)
-- 🍎 **macOS · Intel 芯片**：[国内镜像 .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-intel.dmg) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos-intel.dmg)
+- 🍎 **macOS（Intel 与 Apple 芯片通用）**：[国内镜像 .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg)
 - 🪟 **Windows 10 / 11（64 位）**：[国内镜像 .exe](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe) · [GitHub 直连](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe)
 
-下载后双击运行，会弹出一个安装窗口，跟着走、装完关掉窗口就行。首次打开如果提示「身份不明的开发者」(macOS) 或 SmartScreen 蓝框 (Windows)，见 [安装包打不开怎么办](#安装包打不开怎么办)。不确定 Mac 是什么芯片？点屏幕左上角  →「关于本机」看「芯片」一栏。安装包来自 [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest)，每个都附 SHA-256 校验值；下载页和发布版要等版本 tag 构建出来后才有内容。
+下载后双击运行，会弹出一个安装窗口，跟着走、装完关掉窗口就行。首次打开如果提示「身份不明的开发者」(macOS) 或 SmartScreen 蓝框 (Windows)，见 [安装包打不开怎么办](#安装包打不开怎么办)。macOS 是通用版，Intel 和 Apple 芯片都能用，不用挑。安装包来自 [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest)，每个都附 SHA-256 校验值；下载页和发布版要等版本 tag 构建出来后才有内容。
 
 ## 演示
 <!--

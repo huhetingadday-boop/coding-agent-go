@@ -9,9 +9,12 @@ name: build-release
 # Windows), so the UI opens in its own window — it feels like an app, not a
 # browser tab, and closing the window quits cleanly.
 #
-#   Windows      -> coding-agent-go-windows.exe      (windowed, WebView2)
-#   macOS arm64  -> coding-agent-go-macos-arm64.dmg  (Apple Silicon, .app)
-#   macOS intel  -> coding-agent-go-macos-intel.dmg  (Intel x86_64, .app)
+#   Windows -> coding-agent-go-windows.exe   (windowed, WebView2)
+#   macOS   -> coding-agent-go-macos.dmg      (universal2: Intel + Apple Silicon)
+#
+# macOS is built once as a universal2 binary on the Apple-Silicon runner — it
+# runs on both Intel and Apple Silicon, so there's no scarce macos-13 Intel
+# runner in the critical path and users never have to pick a chip.
 on:
   push:
     tags: ['v*']
@@ -27,10 +30,8 @@ jobs:
         include:
           - os: windows-latest
             target: windows
-          - os: macos-latest      # Apple Silicon runner -> arm64 build
-            target: macos-arm64
-          - os: macos-13          # Intel runner -> x86_64 build
-            target: macos-intel
+          - os: macos-latest      # Apple-Silicon runner; builds universal2
+            target: macos
     runs-on: ${{ matrix.os }}
     env:
       TARGET: ${{ matrix.target }}
@@ -38,10 +39,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12'   # setup-python ships a universal2 CPython on macOS
       - name: Install build deps
-        # pywebview pulls the platform webview backend (pyobjc on macOS,
-        # pythonnet/WebView2 interop on Windows). PyInstaller bundles it.
+        # pywebview pulls the platform webview backend (pyobjc on macOS — it has
+        # universal2 wheels —, pythonnet/WebView2 interop on Windows).
         run: python -m pip install --upgrade pip pyinstaller pywebview
       - name: Build (embedded-webview app)
         shell: bash
@@ -54,9 +55,9 @@ jobs:
             pyinstaller --onefile --windowed --name "Coding Agent Installer" \
               --add-data "providers.json;." server.py
           else
-            # --windowed makes a real .app bundle so Finder runs it on double
-            # click; the UI is the WKWebView window.
-            pyinstaller --windowed --name "Coding Agent Installer" \
+            # --windowed makes a real .app bundle; --target-arch universal2 makes
+            # one binary that runs on Intel + Apple Silicon. The UI is WKWebView.
+            pyinstaller --windowed --target-arch universal2 --name "Coding Agent Installer" \
               --add-data "providers.json:." server.py
           fi
       - name: Package + checksum
@@ -70,15 +71,16 @@ jobs:
             sha256sum coding-agent-go-windows.exe > coding-agent-go-windows.exe.sha256
           else
             # The app IS the installer (run-once: it installs the CLIs), so the
-            # .dmg just holds the app to double-click — no drag-to-Applications
-            # step. Name by arch ($TARGET = macos-arm64 | macos-intel) so both
-            # can coexist on the release.
-            dmg="coding-agent-go-${TARGET}.dmg"
+            # .dmg just holds the app to double-click — no drag-to-Applications.
+            # One universal dmg covers both chips.
+            dmg="coding-agent-go-macos.dmg"
             mkdir -p dmgroot
             cp -R "Coding Agent Installer.app" dmgroot/
             hdiutil create -volname "Coding Agent Installer" -srcfolder dmgroot \
               -fs HFS+ -ov -format UDZO "$dmg"
             shasum -a 256 "$dmg" > "$dmg.sha256"
+            # sanity: confirm the binary really is universal (x86_64 + arm64)
+            lipo -archs "Coding Agent Installer.app/Contents/MacOS/Coding Agent Installer" || true
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -91,6 +93,9 @@ jobs:
 
   release:
     needs: build
+    # Publish whatever built, even if one OS leg failed — a Windows hiccup must
+    # not hold back the macOS .dmg, and vice versa.
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -104,6 +109,10 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
+          if [ -z "$(ls -A artifacts 2>/dev/null)" ]; then
+            echo "no build artifacts — every build leg failed"; exit 1
+          fi
+          ls -R artifacts
           gh release view "$tag" >/dev/null 2>&1 \
             || gh release create "$tag" \
                  --title "$tag" --notes "Double-click installers for $tag. Verify with the matching .sha256 before running."

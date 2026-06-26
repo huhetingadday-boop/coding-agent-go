@@ -115,22 +115,6 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .card.match .badge{display:inline-flex}
 .arch{color:var(--ink3);font-size:12.5px;margin:7px 0 16px;font-family:var(--mono)}
 
-/* split download button: big action + embedded chip picker */
-.dl-split{display:flex;align-items:stretch;border-radius:var(--radius-sm);overflow:hidden;
-  box-shadow:0 10px 26px -12px rgba(224,128,79,.7)}
-.dl-go{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
-  background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
-  font-weight:800;font-size:15.5px;text-decoration:none;padding:14px 12px;
-  font-family:var(--display);letter-spacing:.01em;position:relative;transition:filter .18s}
-.dl-go:hover{filter:brightness(1.06)}
-.dl-go::before{content:"↓";font-family:var(--mono);font-weight:700;opacity:.85}
-.dl-chip{flex:0 0 auto;border:0;border-left:1px solid rgba(0,0,0,.16);
-  background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12.5px;font-weight:700;
-  padding:0 30px 0 14px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:filter .18s;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%231a0f08' d='M3 4.5 6 8l3-3.5z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 11px center;background-size:11px}
-.dl-chip:hover{filter:brightness(1.06)}
-.dl-chip option{color:CanvasText;background:Canvas}
 .btn-pri{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
   background:linear-gradient(180deg,var(--brand2),var(--brand));color:var(--brand-ink);
   font-family:var(--display);font-weight:800;font-size:15.5px;letter-spacing:.01em;
@@ -217,15 +201,10 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.3 1.3c.1 1-.3 2-.9 2.8-.7.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.6-.8 1.7-1.3 2.6-1.4zM19 17.2c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.5-3.7-2.9C1 17.1.7 12.5 2.3 10c.9-1.4 2.4-2.3 3.9-2.3 1.5 0 2.5 1 3.7 1 1.2 0 2-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.9 7.7z"/></svg>
       macOS
     </div>
-    <div class="arch" data-i="macArch">选好芯片再下载 · .dmg</div>
-    <div class="dl-split">
-      <a class="dl-go" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
-      <select id="mac-chip" class="dl-chip" title="不确定芯片？点屏幕左上角  →「关于本机」看「芯片」" aria-label="选择芯片">
-        <option value="arm64" data-i="optArm">Apple 芯片</option>
-        <option value="intel" data-i="optIntel">Intel 芯片</option>
-      </select>
-    </div>
+    <div class="arch" data-i="macArch">通用版 · Intel 与 Apple 芯片都支持 · .dmg</div>
+    <a class="btn-pri" id="dl-mac" data-i="dlMac" href="#">下载 .dmg</a>
     <div class="mirrors">
+      <a id="mac-m1" href="#" data-i="mirror1">国内镜像</a>
       <a id="mac-m2" href="#" data-i="mirror2">备用镜像</a>
       <a id="mac-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
     </div>
@@ -310,8 +289,7 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
 <script>
 var OWNER="huhetingadday-boop", REPO="coding-agent-go";
 var BASE="https://github.com/"+OWNER+"/"+REPO+"/releases/latest/download/";
-var MAC_ARM="coding-agent-go-macos-arm64.dmg",
-    MAC_INTEL="coding-agent-go-macos-intel.dmg",
+var MAC="coding-agent-go-macos.dmg",   // one universal2 dmg (Intel + Apple Silicon)
     WIN="coding-agent-go-windows.exe";
 // gh-proxy / ghfast are the same China-friendly mirrors the installer uses.
 var GHPROXY="https://gh-proxy.com/", GHFAST="https://ghfast.top/";
@@ -324,13 +302,10 @@ function setLinks(btn,m2,gh,asset){
   if((el=document.getElementById(m2))) el.href=GHFAST+direct;
   if((el=document.getElementById(gh))) el.href=direct;
 }
-// macOS: one button + a chip toggle; the download links follow the chosen chip
-// (the web can't reliably detect Apple Silicon vs Intel, so the user picks).
-var macSel=document.getElementById("mac-chip");
-function updateMac(){ setLinks("dl-mac","mac-m2","mac-gh", (macSel&&macSel.value==="intel")?MAC_INTEL:MAC_ARM); }
-if(macSel) macSel.addEventListener("change",updateMac);
-updateMac();
-// Windows keeps its 国内镜像(gh-proxy) / 备用(ghfast) / 直连 trio.
+// One universal .dmg covers Intel + Apple Silicon, so macOS uses the same
+// single-button + 国内镜像(gh-proxy) / 备用(ghfast) / 直连 trio as Windows.
+setLinks("dl-mac","mac-m2","mac-gh",MAC);
+document.getElementById("mac-m1").href=GHPROXY+BASE+MAC;
 setLinks("dl-win","win-m2","win-gh",WIN);
 document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
 
@@ -352,8 +327,8 @@ var I={
     sub:"Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙",
     lead:"下载安装包，双击就能装好 Claude Code / Codex / Gemini，并接上国产大模型。不用敲命令，不用翻墙。",
     yourSystem:"你的系统",
-    macArch:"选好芯片再下载 · .dmg", winArch:"Windows 10 / 11 (64 位) · .exe",
-    dlMac:"下载 .dmg", optArm:"Apple 芯片", optIntel:"Intel 芯片", dlWin:"下载 Windows 版 (.exe)",
+    macArch:"通用版 · Intel 与 Apple 芯片都支持 · .dmg", winArch:"Windows 10 / 11 (64 位) · .exe",
+    dlMac:"下载 .dmg", dlWin:"下载 Windows 版 (.exe)",
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
     macNote:"双击运行会打开一个安装窗口，跟着走就行。",
     winNote:"下载后双击运行，会打开一个安装窗口。",
@@ -381,8 +356,8 @@ var I={
     sub:"Claude Code · Codex · Gemini · One-click access to China LLMs, no VPN",
     lead:"Download the installer and double-click to set up Claude Code / Codex / Gemini on China LLMs. No commands, no VPN.",
     yourSystem:"Your system",
-    macArch:"Pick your chip, then download · .dmg", winArch:"Windows 10 / 11 (64-bit) · .exe",
-    dlMac:"Download .dmg", optArm:"Apple Silicon", optIntel:"Intel", dlWin:"Download for Windows (.exe)",
+    macArch:"Universal · Intel & Apple Silicon · .dmg", winArch:"Windows 10 / 11 (64-bit) · .exe",
+    dlMac:"Download .dmg", dlWin:"Download for Windows (.exe)",
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
     macNote:"Double-clicking opens an install window — just follow it.",
     winNote:"Double-click after downloading; an install window opens.",
@@ -413,7 +388,7 @@ function applyLang(L){
     var k=el.getAttribute("data-i"); if(I[L][k]!==undefined) el.textContent=I[L][k];
   });
   document.getElementById("verify-cmd").innerHTML =
-    '<span class="p"># </span>'+(L==="zh"?"macOS：":"macOS: ")+"shasum -a 256 -c "+MAC_ARM+".sha256\n"+
+    '<span class="p"># </span>'+(L==="zh"?"macOS：":"macOS: ")+"shasum -a 256 -c "+MAC+".sha256\n"+
     '<span class="p"># </span>'+(L==="zh"?"Windows (PowerShell)：":"Windows (PowerShell): ")+
     "Get-FileHash "+WIN+" -Algorithm SHA256";
   document.querySelectorAll(".langsw button").forEach(function(b){
