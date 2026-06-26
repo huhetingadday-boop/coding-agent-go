@@ -97,6 +97,13 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 /* ── OS cards ── */
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:38px}
 @media (max-width:620px){.cards{grid-template-columns:1fr}}
+/* solo = only the detected OS card is shown; centre it so the page stays calm */
+.cards.solo{grid-template-columns:1fr;max-width:560px;margin-inline:auto}
+/* low-key link to reveal the other OS — secondary to the big download button */
+.otheros{display:block;margin:18px auto 0;padding:4px 4px;background:none;border:0;cursor:pointer;
+  font:inherit;font-size:13px;color:var(--ink3);border-bottom:1px dashed var(--line2);
+  transition:color .18s,border-color .18s}
+.otheros:hover{color:var(--brand);border-color:var(--brand)}
 .card{position:relative;border-radius:var(--radius);padding:24px 22px 22px;
   background:var(--panel);border:1px solid var(--line);
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -113,7 +120,7 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .badge{position:absolute;top:16px;right:16px;display:none;align-items:center;gap:5px;
   font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--brand-ink);background:var(--brand);padding:4px 9px;border-radius:999px}
-.card.match .badge{display:inline-flex}
+.card.detected .badge{display:inline-flex}  /* badge = auto-detected OS, stays put; .match (the ring) may move on a download click */
 .arch{color:var(--ink3);font-size:12.5px;margin:7px 0 16px;font-family:var(--mono)}
 
 .btn-pri{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
@@ -256,7 +263,7 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
       <a id="mac-m2" href="#" data-i="mirror2">备用镜像</a>
       <a id="mac-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
     </div>
-    <div class="note" data-i="macNote">下载后双击运行，会打开一个安装窗口，跟着走就行。</div>
+    <div class="note" data-i="macNote">双击运行会打开一个安装窗口，跟着走就行。</div>
   </div>
 
   <!-- Windows -->
@@ -273,9 +280,12 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
       <a id="win-m2" href="#" data-i="mirror2">备用镜像</a>
       <a id="win-gh" href="#" data-i="mirrorGh">GitHub 直连</a>
     </div>
-    <div class="note" data-i="winNote">下载后双击运行，会打开一个安装窗口，跟着走就行。</div>
+    <div class="note" data-i="winNote">下载后双击运行，会打开一个安装窗口。</div>
   </div>
 </div>
+
+<!-- shown only when we detected the visitor's OS; reveals the other OS card -->
+<button type="button" class="otheros" id="other-os" hidden></button>
 
 <!-- first-open guide: revealed + scrolled-to the moment a download is clicked -->
 <section id="firstrun" class="firstrun" hidden>
@@ -338,13 +348,6 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
       </ol>
     </div>
   </details>
-  <details class="fold">
-    <summary data-i="verifySum">想校验文件完整性 (SHA-256)</summary>
-    <div class="body">
-      <p data-i="verifyBody">每个安装包都附一个 <code>.sha256</code> 文件。对比哈希值一致即可放心运行。</p>
-      <div class="term"><div class="term-bar"><i></i><i></i><i></i><span>verify</span></div><span class="cmd" id="verify-cmd"></span></div>
-    </div>
-  </details>
 </section>
 
 <section class="block rv d6">
@@ -394,33 +397,58 @@ document.getElementById("mac-m1").href=GHPROXY+BASE+MAC;
 setLinks("dl-win","win-m2","win-gh",WIN);
 document.getElementById("win-m1").href=GHPROXY+BASE+WIN;
 
-// Highlight (and float to the top on mobile) the card matching the visitor's OS.
+// OS-aware download. To keep the page calm for beginners we show ONLY the
+// visitor's detected OS card by default and tuck the other OS behind a small
+// link. Two separate marks live on the cards:
+//   • .detected — the "你的系统" badge; set on the genuinely detected OS, NEVER moves.
+//   • .match — the orange ring; defaults to the detected card but FOLLOWS download
+//     clicks, so the highlighted card and the first-open guide always agree.
 (function(){
+  var cards=document.querySelector(".cards");
+  var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
+  var other=document.getElementById("other-os");
+  var fr=document.getElementById("firstrun");
   var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
   var isWin=/Windows|Win64|Win32/i.test(ua);
   var isMac=/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua);
-  var cards=document.querySelector(".cards");
-  if(isWin){document.getElementById("card-win").classList.add("match");
-    cards.prepend(document.getElementById("card-win"));}
-  else if(isMac){document.getElementById("card-mac").classList.add("match");
-    cards.prepend(document.getElementById("card-mac"));}
-})();
 
-// First-open guide: hidden until a download link is clicked, then it reveals the
-// steps for that card's OS (with a mock of the actual dialog), scrolls to them
-// and pulses — so the Gatekeeper/SmartScreen prompt is never a surprise.
-(function(){
-  var fr=document.getElementById("firstrun");
+  if(isWin || isMac){
+    var mine = isWin ? w : m, theirs = isWin ? m : w;
+    mine.classList.add("detected","match");
+    cards.prepend(mine);
+    theirs.hidden = true;          // hide the other OS card by default
+    cards.classList.add("solo");   // centre the single card
+    // applyLang() (called at the end) fills the link's text from this key.
+    other.setAttribute("data-i", isWin ? "otherMac" : "otherWin");
+    other.hidden = false;
+  }
+  // Unknown OS (Linux/other): leave BOTH cards visible, link stays hidden.
+
+  // The link reveals the hidden card and restores the two-up layout.
+  other.addEventListener("click",function(){
+    var justShown = m.hidden ? m : w;   // the currently-hidden card is about to show
+    m.hidden=false; w.hidden=false;
+    cards.classList.remove("solo");
+    other.hidden=true;
+    // replay the load-reveal so the new card eases in instead of popping
+    justShown.style.animation="none"; void justShown.offsetWidth;
+    justShown.style.animation="rev .45s both";
+  });
+
+  // First-open guide: hidden until a download link is clicked, then it reveals the
+  // steps for THAT card's OS (mock dialog), moves the ring to it, scrolls + pulses
+  // — so the Gatekeeper/SmartScreen prompt is never a surprise.
   function show(os){
+    m.classList.toggle("match", os==="mac");
+    w.classList.toggle("match", os==="win");
     document.getElementById("fr-mac").hidden = (os!=="mac");
     document.getElementById("fr-win").hidden = (os!=="win");
     fr.hidden=false;
     fr.scrollIntoView({behavior:"smooth",block:"center"});
     fr.classList.remove("pulse"); void fr.offsetWidth; fr.classList.add("pulse");
   }
-  var m=document.getElementById("card-mac"), w=document.getElementById("card-win");
-  if(m) m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
-  if(w) w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
+  m.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("mac"); });
+  w.addEventListener("click",function(e){ if(e.target.closest("a[href]")) show("win"); });
 })();
 
 // ── i18n ──
@@ -432,8 +460,9 @@ var I={
     macArch:"通用版 · Intel 与 Apple 芯片都支持 · .dmg", winArch:"Windows 10 / 11 (64 位) · .exe",
     dlMac:"下载 .dmg", dlWin:"下载 Windows 版 (.exe)",
     mirror1:"国内镜像", mirror2:"备用镜像", mirrorGh:"GitHub 直连",
-    macNote:"下载后双击运行，会打开一个安装窗口，跟着走就行。",
-    winNote:"下载后双击运行，会打开一个安装窗口，跟着走就行。",
+    macNote:"双击运行会打开一个安装窗口，跟着走就行。",
+    winNote:"下载后双击运行，会打开一个安装窗口。",
+    otherWin:"用 Windows？点这里下载 →", otherMac:"用 macOS？点这里下载 →",
     ebHelp:"遇到问题", ebCli:"进阶",
     frTitle:"下载好了！第一次打开会被系统拦一下，这样放行（只需一次）",
     dlgMacT:"无法打开「Coding Agent Installer」", dlgMacS:"Apple 无法验证此 App 是否含有恶意软件。",
@@ -451,9 +480,7 @@ var I={
     macStuck2:"在「系统设置 → 隐私与安全性」最下面找「仍要打开」。如果没看到，先再双击一次安装包让它重新弹一下，按钮就会出现。",
     winOpenSum:"Windows：被 360 / 电脑管家 / 杀软拦了",
     winStep2:"360 / 电脑管家弹窗：选「允许」或「信任」，不要选「阻止」。",
-    winStep3:"杀软拦了 node 或代理进程：把 %TEMP%\\coding-agent-go 目录和 Node.js 加入白名单后重试。",
-    verifySum:"想校验文件完整性 (SHA-256)",
-    verifyBody:"每个安装包都附一个 .sha256 文件。对比哈希值一致即可放心运行。",
+    winStep3:"装到一半失败、或者命令一直打不开，多半是杀软在后台悄悄拦了。打开你的杀软（360 / 电脑管家 / Windows 安全中心），找到「信任区 / 白名单 / 允许的程序」，把这个安装器加进去再装一次；实在不会弄，就先临时关掉杀软，装完再打开。",
     cliTitle:"会用命令行？一行直接装（不用下载安装包）",
     cliMac:"macOS / Linux / WSL — 打开终端粘贴回车：",
     cliWin:"Windows — 打开 PowerShell 粘贴回车：",
@@ -468,8 +495,9 @@ var I={
     macArch:"Universal · Intel & Apple Silicon · .dmg", winArch:"Windows 10 / 11 (64-bit) · .exe",
     dlMac:"Download .dmg", dlWin:"Download for Windows (.exe)",
     mirror1:"China mirror", mirror2:"Backup mirror", mirrorGh:"GitHub direct",
-    macNote:"Double-click after downloading; an install window opens — just follow it.",
-    winNote:"Double-click after downloading; an install window opens — just follow it.",
+    macNote:"Double-clicking opens an install window — just follow it.",
+    winNote:"Double-click after downloading; an install window opens.",
+    otherWin:"On Windows? Get the Windows version →", otherMac:"On macOS? Get the macOS version →",
     ebHelp:"Troubleshooting", ebCli:"Advanced",
     frTitle:"Downloaded! The OS blocks the first open — here's how to allow it (just once)",
     dlgMacT:"“Coding Agent Installer” Not Opened", dlgMacS:"Apple could not verify this app is free of malware.",
@@ -487,9 +515,7 @@ var I={
     macStuck2:"In System Settings → Privacy & Security, the “Open Anyway” button is at the bottom. Don't see it? Double-click the installer once more so it re-prompts, and the button appears.",
     winOpenSum:"Windows: blocked by 360 / PC Manager / antivirus",
     winStep2:"360 / PC Manager popup: choose Allow / Trust, not Block.",
-    winStep3:"If antivirus blocks node or the proxy, allow-list the %TEMP%\\coding-agent-go folder and Node.js, then retry.",
-    verifySum:"Verify file integrity (SHA-256)",
-    verifyBody:"Each installer ships a .sha256 file. Match the hash before running.",
+    winStep3:"If the install fails partway, or a command just won't open, your antivirus is probably blocking it in the background. Open it (360 / PC Manager / Windows Security), find “Trusted / Allowed apps”, add this installer, and try again. Too fiddly? Turn the antivirus off, install, then turn it back on.",
     cliTitle:"Comfortable with a terminal? One-line install (no download)",
     cliMac:"macOS / Linux / WSL — paste into Terminal:",
     cliWin:"Windows — paste into PowerShell:",
@@ -503,10 +529,6 @@ function applyLang(L){
   document.querySelectorAll("[data-i]").forEach(function(el){
     var k=el.getAttribute("data-i"); if(I[L][k]!==undefined) el.textContent=I[L][k];
   });
-  document.getElementById("verify-cmd").innerHTML =
-    '<span class="p"># </span>'+(L==="zh"?"macOS：":"macOS: ")+"shasum -a 256 -c "+MAC+".sha256\n"+
-    '<span class="p"># </span>'+(L==="zh"?"Windows (PowerShell)：":"Windows (PowerShell): ")+
-    "Get-FileHash "+WIN+" -Algorithm SHA256";
   document.querySelectorAll(".langsw button").forEach(function(b){
     b.classList.toggle("active", b.getAttribute("data-lang")===L);
   });
