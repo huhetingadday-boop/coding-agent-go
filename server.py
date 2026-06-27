@@ -122,12 +122,18 @@ HTML = r"""<!DOCTYPE html>
 <meta name="color-scheme" content="light dark">
 <title>Coding Agent — Go Go Go</title>
 <style>
+/* Distinctive display face — self-served via jsDelivr (reachable in CN, unlike
+   Google Fonts). font-display:swap => system fallback shows instantly. */
+@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;
+  src:url('https://cdn.jsdelivr.net/npm/@fontsource/bricolage-grotesque@5/files/bricolage-grotesque-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Bricolage Grotesque';font-weight:800;font-display:swap;
+  src:url('https://cdn.jsdelivr.net/npm/@fontsource/bricolage-grotesque@5/files/bricolage-grotesque-latin-800-normal.woff2') format('woff2')}
 /* ═══════════════════════════════════════════════════════════════════════════
    Design tokens — dark default, light via prefers-color-scheme
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light dark;
-  --bg:        #1b1916;
+  --bg:        #141009;
   --surface:   #232019;
   --surface2:  #2d2922;
   --border:    #37322a;
@@ -135,10 +141,13 @@ HTML = r"""<!DOCTYPE html>
   --text:      #f4f1ea;
   --text2:     #b3ab9d;
   --text3:     #847c6d;
-  --brand:     #d97757;
-  --brand-dim: #c56a4a;
-  --brand-bg:  rgba(217,119,87,.13);
-  --wash:      rgba(217,119,87,.10);
+  --brand:     #e8804f;
+  --brand2:    #f4a878;
+  --brand-dim: #cf6a3c;
+  --brand-bg:  rgba(224,128,79,.14);
+  --wash:      rgba(224,128,79,.10);
+  --glow:      rgba(224,128,79,.16);
+  --glow2:     rgba(224,128,79,.10);
   --green:     #9ab27e;
   --green-bg:  rgba(154,178,126,.12);
   --red:       #d98a76;
@@ -155,6 +164,7 @@ HTML = r"""<!DOCTYPE html>
   --radius-xs: 10px;
   --maxw:      820px;
   --font:      -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --display:   'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --mono:      "SF Mono","Cascadia Code","Fira Code","JetBrains Mono",monospace;
 }
 
@@ -169,9 +179,12 @@ HTML = r"""<!DOCTYPE html>
     --text2:     #6b6557;
     --text3:     #9a9384;
     --brand:     #c1663b;
+    --brand2:    #a8552e;
     --brand-dim: #a85932;
-    --brand-bg:  rgba(193,102,59,.09);
+    --brand-bg:  rgba(193,102,59,.10);
     --wash:      rgba(193,102,59,.06);
+    --glow:      rgba(193,102,59,.14);
+    --glow2:     rgba(193,102,59,.08);
     --green:     #6f8a55;
     --green-bg:  rgba(111,138,85,.10);
     --red:       #c06a52;
@@ -194,7 +207,9 @@ html{min-height:100dvh}
 body{
   font-family:var(--font);color:var(--text);
   background:
-    radial-gradient(1100px 520px at 50% -6%, var(--wash), transparent 60%),
+    radial-gradient(900px 520px at 12% -8%, var(--glow), transparent 60%),
+    radial-gradient(760px 600px at 110% 8%, var(--glow2), transparent 55%),
+    radial-gradient(1100px 560px at 50% -6%, var(--wash), transparent 62%),
     var(--bg);
   background-attachment:fixed;
   font-size:15.5px;line-height:1.6;
@@ -232,14 +247,18 @@ a:hover{text-decoration:underline}
   padding:60px 28px 4px;width:100%;max-width:var(--maxw);
 }
 .header-icon{
-  width:46px;height:46px;border-radius:13px;color:#fff;
-  background:linear-gradient(145deg, var(--brand) 0%, var(--brand-dim) 100%);
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 22px var(--brand-bg),inset 0 1px 0 rgba(255,255,255,.28);
-  flex-shrink:0;
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  display:grid;place-items:center;line-height:1;
+  font-family:var(--mono);font-size:26px;font-weight:700;color:#fff;
+  background:linear-gradient(150deg,var(--brand2),var(--brand-dim));
+  box-shadow:0 8px 24px -6px var(--brand-bg),0 1px 0 rgba(255,255,255,.35) inset;
 }
-.header-icon svg{width:25px;height:25px;display:block}
-.header-title{font-size:27px;font-weight:760;letter-spacing:-.03em;color:var(--text)}
+.header-icon b{display:inline-block;width:.5ch;height:1.05em;margin-left:.1em;background:#fff;
+  border-radius:2px;transform:translateY(.08em);animation:blink 1.15s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.header-title{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;
+  background:linear-gradient(170deg,var(--text),var(--text) 58%,var(--brand2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
 .header-sub{font-size:13px;color:var(--text3);margin-top:4px;letter-spacing:.005em}
 
 /* ───── step indicator ───── */
@@ -527,9 +546,7 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 </div>
 
 <header class="header">
-  <div class="header-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 4c.7 5.3 1.7 7.3 7 8-5.3.7-6.3 2.7-7 8-.7-5.3-1.7-7.3-7-8 5.3-.7 6.3-2.7 7-8Z" fill="currentColor"/></svg>
-  </div>
+  <div class="header-icon" aria-hidden="true">›<b></b></div>
   <div>
     <div class="header-title">Coding Agent — Go Go Go</div>
     <div class="header-sub" id="hdrSub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</div>
