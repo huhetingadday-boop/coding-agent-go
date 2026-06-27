@@ -10,9 +10,14 @@ name: build-release
 #   macOS   -> coding-agent-go-macos.dmg      (universal: Intel + Apple Silicon)
 #
 # Unsigned, so first open still needs the one-time Gatekeeper/SmartScreen allow.
+# PAUSED: Electron packaging is on hold while we focus on the command-line
+# install. The app/ shell and this pipeline are kept intact — to resume, restore
+# the tag trigger below (and remove workflow_dispatch if you like):
+#   on:
+#     push:
+#       tags: ['v*']
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write

@@ -2412,6 +2412,34 @@ def _persist_unix_path(bindir, sse=None):
                    "  Added to PATH (open a new terminal window)"), cls="dim")
 
 
+def _replace_dir(src, dst):
+    """Move directory `src` onto `dst`, replacing any existing `dst`.
+
+    A plain rename to an existing path raises WinError 183 (ERROR_ALREADY_EXISTS)
+    on Windows — and rmtree can silently leave a locked file behind (antivirus or
+    a stale node.exe holding a handle), so a prior install dir trips the rename.
+    Clear `dst` robustly first, then move `src` in."""
+    src, dst = Path(src), Path(dst)
+    if dst.exists():
+        shutil.rmtree(dst, ignore_errors=True)
+    if dst.exists():
+        # rmtree couldn't fully delete it. Renaming the leftover to a NEW name
+        # works on Windows even when deleting a locked file does not — slide it
+        # out of the way so the path is free, then best-effort drop it.
+        side = dst.with_name(f"{dst.name}.old{os.getpid()}")
+        try:
+            os.rename(dst, side)
+            shutil.rmtree(side, ignore_errors=True)
+        except OSError:
+            pass
+    try:
+        os.rename(src, dst)          # dst is free now → works on Windows too
+    except OSError:
+        # Last resort (cross-volume, or a racing re-create): copy then drop src.
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        shutil.rmtree(src, ignore_errors=True)
+
+
 def _install_node_tarball_mac(sse, min_major=0):
     """Install a portable prebuilt Node on macOS — no brew, no Xcode CLT, no
     admin, no VPN. Same idea as our Windows ZIP path and as fnm/volta/rustup:
@@ -2447,9 +2475,7 @@ def _install_node_tarball_mac(sse, min_major=0):
         top = tf.getnames()[0].split("/")[0]  # node-v22.11.0-darwin-arm64
         tf.extractall(dest.parent)
     extracted = dest.parent / top
-    if dest.exists():
-        shutil.rmtree(dest, ignore_errors=True)
-    extracted.rename(dest)
+    _replace_dir(extracted, dest)
     nbin = dest / "bin"
     if not (nbin / "node").exists():
         raise Exception(_t("Node 解压异常：找不到 node", "Node extract failed: node binary missing"))
@@ -2554,9 +2580,7 @@ def _install_node(sse, min_major=0):
         extracted = dest.parent / top
         if not extracted.is_dir():
             raise Exception(f"Node zip 解压异常: 找不到 {extracted}")
-        if dest.exists():
-            shutil.rmtree(dest, ignore_errors=True)
-        extracted.rename(dest)
+        _replace_dir(extracted, dest)
         if not (dest / "node.exe").exists():
             raise Exception("Node zip 缺少 node.exe — 请手动从 nodejs.org 安装")
         # Put node + its bundled npm on PATH (this process + persisted HKCU).
