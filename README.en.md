@@ -69,6 +69,7 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 
 ## Trouble?
 - **Where's the terminal?** Windows: search "PowerShell" in Start. Mac: search "Terminal" in Launchpad. Open it, paste the command, Enter.
+- **Windows asks "Do you want to allow this app to make changes to your device?"** That's normal — it pops a few times while installing Node and Codex components (e.g. `codex-windows-sandbox-setup.exe`). Click **Yes**; clicking No stops the install.
 - **No Python?** Don't worry — the script installs it for you (per-user, no UAC).
 - **Blocked by 360 / PC Manager / antivirus?** Choose "Allow" / "Trust" in the popup, not "Block"; if it blocks `node` or the background proxy, add it to the trusted list and re-run. If that's too fiddly, turn the antivirus off, install, then turn it back on.
 - **"claude" not found?** Close the terminal and open a new one — new commands need a fresh window to be on PATH.
