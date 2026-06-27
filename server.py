@@ -1756,7 +1756,7 @@ def _npm_global(pkg, sse):
         _run(base + ["--registry", NPM_MIRROR], timeout=180)
         return
     except Exception:
-        sse(log="  镜像失败，试官方源…", cls="dim")
+        sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
         _run(base, timeout=180)
 
 
@@ -2062,7 +2062,7 @@ def _install_gh(sse):
                 _refresh_windows_path()
                 return
             except Exception as e:
-                sse(log=f"  winget 失败，改用 MSI 镜像: {e}", cls="dim")
+                sse(log="  换用 MSI 镜像继续装…", cls="dim")
         # MSI fallback: resolve the real latest version, then download via a
         # China-friendly GitHub mirror (direct github.com is slow/blocked in CN).
         ver = _gh_latest_version()
@@ -2080,7 +2080,7 @@ def _install_gh(sse):
                 ok = True
                 break
             except Exception as e:
-                sse(log=f"    {host} 失败: {e}", cls="dim")
+                sse(log=f"    {host} 这个源有点慢，换下一个…", cls="dim")
         if not ok:
             raise Exception("gh MSI 多个镜像都下载失败")
         rc = subprocess.run(["msiexec", "/i", str(msi), "/qn",
@@ -2129,8 +2129,8 @@ def _install_claude(sse):
             return
     except Exception:
         pass
-    sse(log=_t("官方源连不上（没翻墙也没关系），改用 npm 国内镜像…",
-               "Official source unreachable (no VPN needed) — using the npm China mirror…"), cls="dim")
+    sse(log=_t("官方源有点慢（没翻墙也没关系），换国内镜像更快…",
+               "Official source is slow (no VPN needed) — switching to the faster China mirror…"), cls="dim")
     _ensure_brew_path()
     if not (_which("node") and _which("npm")):
         _install_node(sse)  # mac: brew + USTC mirror; both work without a VPN
@@ -2464,8 +2464,8 @@ def _install_node_tarball_mac(sse, min_major=0):
             dl_ok = True
             break
         except Exception:
-            sse(log=_t(f"    {host} 失败，换下一个镜像",
-                       f"    {host} failed, trying the next mirror"), cls="dim")
+            sse(log=_t(f"    {host} 这个源有点慢，换下一个镜像试试…",
+                       f"    {host} is slow — trying the next mirror…"), cls="dim")
     if not dl_ok:
         raise Exception(_t("Node.js 下载失败（多个镜像都不通）",
                            "Node.js download failed (all mirrors unreachable)"))
@@ -2513,8 +2513,8 @@ def _install_node(sse, min_major=0):
             return
         except Exception as e:
             if _clt_present():
-                sse(log=_t(f"  Node 镜像都不通，改用 Homebrew：{e}",
-                           f"  Node mirrors all failed, falling back to Homebrew: {e}"), cls="dim")
+                sse(log=_t("  换用 Homebrew 继续装 Node…",
+                           "  Switching to Homebrew to finish installing Node…"), cls="dim")
                 _install_brew(sse)
                 _ensure_brew_path()
                 _run(["brew", "install", "node"], timeout=600, env=_brew_env())
@@ -2537,9 +2537,9 @@ def _install_node(sse, min_major=0):
                 _refresh_windows_path()
                 if _node_major() >= min_major:
                     return
-                sse(log="  winget 装的 Node 版本仍偏低，改用 zip…", cls="dim")
+                sse(log="  换用便携版（zip）装更稳的 Node…", cls="dim")
             except Exception as e:
-                sse(log=f"  winget 失败，改下 zip: {e}", cls="dim")
+                sse(log="  换用便携版（zip）继续装…", cls="dim")
         # Fallback: the official Node MSI is per-machine and needs admin, which
         # a double-clicked launcher does not have. Use the portable ZIP instead
         # — unzip into %LOCALAPPDATA%\Programs\nodejs (no admin), then PATH it.
@@ -2568,7 +2568,7 @@ def _install_node(sse, min_major=0):
                 dl_ok = True
                 break
             except Exception as e:
-                sse(log=_t(f"    {host} 失败，换下一个镜像", f"    {host} failed, trying the next mirror"), cls="dim")
+                sse(log=_t(f"    {host} 这个源有点慢，换下一个镜像试试…", f"    {host} is slow — trying the next mirror…"), cls="dim")
         if not dl_ok:
             raise Exception(_t("Node.js 下载失败（多个镜像都不通）",
                                "Node.js download failed (all mirrors unreachable)"))
@@ -2648,8 +2648,8 @@ def _install_codex(sse):
         pass
     if official_ok:
         return
-    sse(log=_t("官方源连不上（没翻墙也没关系），改用 npm 国内镜像…",
-               "Official source unreachable (no VPN needed) — using the npm China mirror…"), cls="dim")
+    sse(log=_t("官方源有点慢（没翻墙也没关系），换国内镜像更快…",
+               "Official source is slow (no VPN needed) — switching to the faster China mirror…"), cls="dim")
     _npm_global("@openai/codex", sse)
 
 

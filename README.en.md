@@ -2,27 +2,13 @@
 [![tests](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml/badge.svg)](https://github.com/huhetingadday-boop/coding-agent-go/actions/workflows/test.yml)
 [中文](README.md) · **English**
 
-Download an installer and double-click to set up Claude Code / OpenAI Codex / Gemini CLI on China LLMs (DeepSeek / GLM / Kimi / Qwen / MiniMax). No VPN, no terminal — a non-technical user just follows the prompts. Comfortable with a terminal? There's a one-line install too (see [below](#secondary-prefer-the-terminal-one-line-install)).
+One command installs Claude Code / OpenAI Codex / Gemini CLI and wires them to China LLMs (DeepSeek / GLM / Kimi / Qwen / MiniMax). Open a terminal, paste, press Enter — no VPN, just follow the prompts.
 
-## Download an installer (double-click, no terminal)
-Best for non-technical users: download, double-click, done — no terminal, no VPN. It's a run-once installer (the UI is an embedded webview, no browser needed).
-- 📥 **Download page (auto-detects your OS)**: <https://huhetingadday-boop.github.io/coding-agent-go/>
-- 🍎 **macOS (universal — Intel & Apple Silicon)**: [China mirror .dmg](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-macos.dmg)
-- 🪟 **Windows 10 / 11 (64-bit)**: [China mirror .exe](https://gh-proxy.com/https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe) · [GitHub direct](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest/download/coding-agent-go-windows.exe)
+> 🚧 A double-click desktop app (native window) is a work in progress, not released yet — for now, use the one-line command below.
 
-Double-click after downloading; an install window opens — follow it, then close the window when done. If the first open is blocked ("unidentified developer" on macOS, or a SmartScreen box on Windows), see [Installer won't open](#installer-wont-open). The macOS build is universal — it runs on both Intel and Apple Silicon, so there's nothing to pick. Binaries come from [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases/latest), each with a SHA-256.
-
-## Demo
-<!--
-  Recording guide: capture a 30-second run — download the installer → double-click to open (an install window appears) → pick a model / paste your key → after it installs, type claude in a terminal and it works.
-  Record with ScreenToGif (Windows) or Kap (macOS), export a GIF named demo.gif into docs/, then uncomment the line below.
--->
-<!-- ![demo](docs/demo.gif) -->
-> Demo GIF pending — record one per the guide above, drop it at `docs/demo.gif`, then uncomment to show it.
-
-## Secondary: prefer the terminal? One-line install
-(Take this path if you'd rather not download an installer.) One command does it all: it downloads the installer (`server.py` + `providers.json`), starts a local web setup UI on your machine (default http://localhost:17860), and opens your browser. No need to clone the repo first. Follow the GUI: ① pick Claude Code / Codex / Gemini → ② pick a model → ③ paste your API key → ④ it installs and verifies automatically.
-### WSL / macOS / Linux (bash)
+## One-line install (open a terminal, paste, Enter)
+One command does it all: it downloads the installer (`server.py` + `providers.json`), starts a local web setup UI on your machine (default http://localhost:17860), and opens your browser. No need to clone the repo first. Follow the GUI: ① pick Claude Code / Codex / Gemini → ② pick a model → ③ paste your API key → ④ it installs and verifies automatically.
+### macOS / Linux / WSL (bash)
 Open a terminal (in WSL use the same command), paste this one line, press Enter:
 ```bash
 bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)
@@ -34,6 +20,14 @@ irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/instal
 ```
 Both commands download `server.py` and `providers.json`, start the local UI server, and open the browser — no clone needed. WSL installs into the WSL Linux environment, so run it in a WSL terminal; to use the native Windows terminal, take the PowerShell path.
 > No Python? No problem: the script installs it automatically (per-user, no UAC prompt). If you prefer cmd/batch on the command line, you can also use: `$f="$env:TEMP\acgg.bat"; iwr https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.bat -OutFile $f; cmd /c $f`
+
+## Demo
+<!--
+  Recording guide: capture a 30-second run — open a terminal → paste the install command → the GUI installs everything → type claude in a terminal and it works.
+  Record with ScreenToGif (Windows) or Kap (macOS), export a GIF named demo.gif into docs/, then uncomment the line below.
+-->
+<!-- ![demo](docs/demo.gif) -->
+> Demo GIF pending — record one per the guide above, drop it at `docs/demo.gif`, then uncomment to show it.
 
 ## After it installs — how to use it
 The installer tells you the next step when it finishes. In short:
@@ -72,23 +66,13 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 - **Your API key only flows between your computer and the LLM vendor** — never to the author or any third party. All config is written only to local files on your machine.
 - **The install scripts are public — read them before you run them.** If `irm | iex` / `curl | sh` makes you uneasy, open the script in your browser first and decide: [install-gui.ps1](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.ps1) (Windows) · [install-gui.sh](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.sh) (macOS/Linux/WSL).
 - **The install command is pinned to the latest release.** jsdelivr's `@latest` resolves only to a tagged release, never an unreleased dev branch — so the command is stable and reproducible.
-- **Packaged builds are verifiable.** Each `.exe` / `.dmg` on the [Releases](https://github.com/huhetingadday-boop/coding-agent-go/releases) page ships a SHA-256 checksum, so you can verify it before running.
 
-## Installer won't open
-The binaries aren't paid-signed by Apple/Microsoft, so the OS may block the first open. Allow it once and it's fine after that.
-### macOS: "could not be opened" / "unidentified developer"
-Newer macOS (Sequoia/15) removed the old right-click→Open trick — it shows "…could not be opened" with only "Done / Move to Trash". Don't worry; use this path, which works on every version (just once):
-1. Double-click the installer; when "…could not be opened" appears, click **"Done"** (do **NOT** click "Move to Trash").
-2. Open System Settings → "Privacy & Security" and scroll down to the "Security" section.
-3. You'll see "Coding Agent Installer was blocked" — click **"Open Anyway"** next to it, then confirm with your password / Touch ID (no need to move it to Applications — it's run-once).
-
-> Want to remove this prompt entirely? That requires a paid Apple signature + notarization. This is a free, run-once installer, so the one-time manual allow stays.
-### Windows: SmartScreen blue box / antivirus block
-360 / 电脑管家 / Windows SmartScreen sometimes block the `.exe`, the PowerShell script, or the background proxy. If that happens:
-- SmartScreen blue box: click "More info" → "Run anyway".
-- 360 / 电脑管家 popup: choose "Allow" / "Trust", not "Block".
-- Antivirus blocked the proxy or `node`: whitelist the `%TEMP%\coding-agent-go` folder and Node.js, then re-run the install command.
-- Still stuck: open PowerShell as Administrator and run the install command again.
+## Trouble?
+- **Where's the terminal?** Windows: search "PowerShell" in Start. Mac: search "Terminal" in Launchpad. Open it, paste the command, Enter.
+- **No Python?** Don't worry — the script installs it for you (per-user, no UAC).
+- **Blocked by 360 / PC Manager / antivirus?** Choose "Allow" / "Trust" in the popup, not "Block"; if it blocks `node` or the background proxy, add it to the trusted list and re-run. If that's too fiddly, turn the antivirus off, install, then turn it back on.
+- **"claude" not found?** Close the terminal and open a new one — new commands need a fresh window to be on PATH.
+- **Windows still stuck?** Open PowerShell as Administrator and run the install command again.
 
 ## Community
 Questions, feedback, or tutorial updates — join the group, or follow the author "产品经理胡笛笛" ([Douyin](https://www.douyin.com/user/MS4wLjABAAAAAaiQmXTnVitWO9_2loyITZvKbS3rZYVocuQa-UgLd5E) · [Xiaohongshu](https://www.xiaohongshu.com/user/profile/6210ebbd0000000010004897)).
