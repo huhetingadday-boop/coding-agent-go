@@ -722,6 +722,8 @@ var I18N = {
     s3title:"正在装 {a}…", prep:"准备…", doneLabel:"完事",
     okStatus:"安装好了", doneBanner:"══════ 安装完成 ══════",
     runTerm:"在终端输入: ", failStatus:"没装上",
+    openTerm:"▶ 打开终端，直接开聊", opening:"正在打开终端…", opened:"已为你打开终端 ✓ 去新窗口里用吧",
+    openFail:"没能自动打开终端，请按下面「不知道终端在哪」的方法手动打开，输入上面那行命令。",
     home:"回首页", retry:"重试", redo:"重来", cancel:"算了",
     errDefault:"检查下网络或者 Key 对不对，再试一次",
     errHttp:"服务器挂了 HTTP ", errOldBrowser:"浏览器太老了，不支持流式",
@@ -756,6 +758,8 @@ var I18N = {
     s3title:"Installing {a}…", prep:"Preparing…", doneLabel:"Done",
     okStatus:"Installed", doneBanner:"══════ Done ══════",
     runTerm:"Run in your terminal: ", failStatus:"Install failed",
+    openTerm:"▶ Open terminal & start", opening:"Opening terminal…", opened:"Terminal opened ✓ — use it in the new window",
+    openFail:"Couldn't open the terminal automatically — open it manually (see “where's the terminal” below) and run the command above.",
     home:"Back to start", retry:"Retry", redo:"Start over", cancel:"Cancel",
     errDefault:"Check your network or key and try again",
     errHttp:"Server error HTTP ", errOldBrowser:"Your browser is too old (no streaming support)",
@@ -1073,7 +1077,12 @@ function finishInstall(ok,msg,detail,skipLog){
     dc.appendChild(E("div","done-cost",t("costNote")));
     var ab=$("actBar"); ab.parentNode.insertBefore(dc,ab);
     ab.innerHTML="";
-    var home=E("button","btn btn-pri btn-sm",t("home"));
+    // One-click: ask the local server to open a terminal already running the
+    // command — beginners skip "find the terminal, type codex" entirely.
+    var openBtn=E("button","btn btn-pri",t("openTerm"));
+    openBtn.onclick=function(){ launchTerminal(cmd, openBtn); };
+    ab.appendChild(openBtn);
+    var home=E("button","btn btn-sec btn-sm",t("home"));
     home.onclick=function(){location.reload()};
     ab.appendChild(home);
   }else{
@@ -1143,6 +1152,22 @@ async function doInstall(){
 function cancelInstall(){
   fetch("/api/cancel",{method:"POST"});
   finishInstall(false,t("errCancel"));
+}
+
+// Ask the local server (which serves this page) to pop a real Terminal/PowerShell
+// window already running the agent command. No browser URL-scheme prompt needed —
+// the server spawns it directly and can actually run the command for the user.
+function launchTerminal(cmd, btn){
+  var orig=t("openTerm");
+  if(btn){ btn.disabled=true; btn.textContent=t("opening"); }
+  fetch("/api/launch",{method:"POST",headers:{"content-type":"application/json"},
+                       body:JSON.stringify({cmd:cmd})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d&&d.ok){ if(btn){ btn.textContent=t("opened"); } }
+      else { if(btn){ btn.disabled=false; btn.textContent=orig; } addLog(t("openFail"),"warn"); }
+    })
+    .catch(function(){ if(btn){ btn.disabled=false; btn.textContent=orig; } addLog(t("openFail"),"warn"); });
 }
 
 // ── language switcher + initial render ──────────────────────────────
@@ -1299,6 +1324,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             _cancel_evt.set()
             _dbg("cancel requested")
             self._send_json({"ok": True})
+
+        elif p == "/api/launch":
+            # Open a terminal running the agent command, so the done screen's
+            # "open terminal & start" button goes straight to a live prompt.
+            length = int(self.headers.get("content-length", 0))
+            try:
+                body = json.loads(self.rfile.read(length)) if length else {}
+            except Exception:
+                body = {}
+            ok, err = _launch_terminal(body.get("cmd", ""))
+            _dbg(f"launch {body.get('cmd','')!r}: ok={ok} err={err}")
+            self._send_json({"ok": ok, "err": err})
         else:
             self._send_empty(404)
 
@@ -3147,6 +3184,65 @@ def _open_browser(url):
             subprocess.Popen(["xdg-open", url])
     except Exception:
         pass
+
+
+# The only commands the page may ask us to launch in a terminal — the three agent
+# entry points. Restricting it keeps this localhost endpoint from being coaxed
+# into running anything else.
+_LAUNCHABLE = {"claude", "codex", "llxprt", "gemini"}
+
+
+def _launch_terminal(cmd):
+    """Open a real terminal window and run `cmd` in it, so a non-technical user
+    goes from the "installed" screen to a live agent prompt in one click — no
+    hunting for the terminal and typing the command. The page is served by this
+    local process, so the browser just POSTs here and we spawn the terminal
+    ourselves (more reliable than a custom URL scheme, and it actually runs the
+    command). Returns (ok, err); on failure the page keeps the copy-command
+    fallback visible."""
+    cmd = (cmd or "").strip()
+    if cmd not in _LAUNCHABLE:
+        return False, "unknown command"
+    try:
+        if IS_MAC:
+            # Write a tiny .command launcher and `open` it. Using `open` (not
+            # AppleScript "do script") avoids the macOS Automation permission
+            # prompt — it just launches Terminal with a document, like a
+            # double-click. Terminal runs it in a login shell, so the PATH line
+            # the installer wrote (and npm's global bin) resolve `cmd`.
+            launcher = Path(tempfile.gettempdir()) / "coding-agent-go-start.command"
+            launcher.write_text(f"#!/bin/bash\nclear\nexec {cmd}\n", encoding="utf-8")
+            os.chmod(launcher, 0o755)
+            subprocess.Popen(["open", str(launcher)],
+                             stdin=subprocess.DEVNULL, start_new_session=True)
+            return True, ""
+        if IS_WIN:
+            # A brand-new PowerShell window reads the user PATH from the registry
+            # (npm's global install updated it), so `codex`/`claude` resolve.
+            # CREATE_NEW_CONSOLE gives it its own window; -NoExit keeps it open.
+            subprocess.Popen(["powershell", "-NoExit", "-Command", cmd],
+                             creationflags=subprocess.CREATE_NEW_CONSOLE,
+                             stdin=subprocess.DEVNULL)
+            return True, ""
+        if IS_LINUX:
+            # Best-effort across common emulators. `exec bash` keeps the window
+            # open after the agent exits so any output stays visible.
+            inner = f"{cmd}; exec bash"
+            for term, argv in (
+                ("x-terminal-emulator", ["x-terminal-emulator", "-e", "bash", "-lc", inner]),
+                ("gnome-terminal",      ["gnome-terminal", "--", "bash", "-lc", inner]),
+                ("konsole",             ["konsole", "-e", "bash", "-lc", inner]),
+                ("xfce4-terminal",      ["xfce4-terminal", "-x", "bash", "-lc", inner]),
+                ("xterm",               ["xterm", "-e", "bash", "-lc", inner]),
+            ):
+                if _which(term):
+                    subprocess.Popen(argv, stdin=subprocess.DEVNULL, start_new_session=True)
+                    return True, ""
+            return False, "no terminal emulator found"
+    except Exception as e:
+        _dbg(f"launch_terminal failed: {e!r}")
+        return False, str(e)
+    return False, "unsupported platform"
 
 
 def main():
