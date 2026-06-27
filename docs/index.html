@@ -163,44 +163,28 @@ footer .lock{display:inline-flex;align-items:center;gap:6px;margin-top:8px;opaci
     </div>
     <code class="cmd-line" id="cmd-line" title="点击复制"><span class="p">$ </span><span id="cmd-text">…</span></code>
   </div>
-  <p class="cta-sub" id="cta-sub" data-i="ctaSub">打开终端粘贴回车，自动装好，跟着提示走 · 不用翻墙</p>
+  <p class="cta-sub" id="cta-sub" data-i="ctaSub">回车后浏览器会自动打开安装页，跟着点几下就装好 · 全程不用翻墙</p>
   <ol class="steps3">
     <li><span class="s-n">1</span><span data-i="step1">打开</span>&nbsp;<b id="term-name">终端</b></li>
-    <li><span class="s-n">2</span><span data-i="step2">粘贴上面这行命令</span></li>
-    <li><span class="s-n">3</span><span data-i="step3">回车，跟着提示走</span></li>
+    <li><span class="s-n">2</span><span data-i="step2">粘贴命令，按回车</span></li>
+    <li><span class="s-n">3</span><span data-i="step3">浏览器自动打开安装页，跟着点</span></li>
   </ol>
 
   <div class="inline-row" id="row">
-    <button type="button" aria-controls="p-other" aria-expanded="false"><span id="other-toggle">换个系统？</span><span class="cv">⌄</span></button>
     <button type="button" aria-controls="p-use"  aria-expanded="false"><span data-i="tUse">装完怎么用？</span><span class="cv">⌄</span></button>
     <button type="button" aria-controls="p-help" aria-expanded="false"><span data-i="tHelp">遇到问题？</span><span class="cv">⌄</span></button>
   </div>
 
-  <!-- 另一个系统的命令 -->
-  <div class="panel" id="p-other" hidden>
-    <div class="p-title" id="p-other-title">在 macOS / Linux / WSL 上：</div>
-    <div class="term-sm">
-      <div class="term-bar"><i></i><i></i><i></i><span class="tlabel" id="other-label">bash</span>
-        <button class="copy-main" id="copy-other" data-i="copy">复制命令</button></div>
-      <code class="cmd-line" id="other-cmd-line"><span class="p">$ </span><span id="other-cmd-text">…</span></code>
-    </div>
-  </div>
-
-  <!-- 装完怎么用 -->
+  <!-- 装完怎么用（按系统展示） -->
   <div class="panel" id="p-use" hidden>
     <div class="p-title" data-i="useTitle">装好之后</div>
-    <p class="p-note" data-i="use1">打开终端，输入 <code>claude</code> 就能开聊（Codex 是 <code>codex</code>，Gemini 是 <code>llxprt</code>）。试一句：「帮我写一个能跑的 Python 小脚本」。</p>
-    <p class="p-note" data-i="use2">Windows 装完后，请<b>新开一个终端窗口</b>，新装的命令才在 PATH 里。</p>
+    <div id="use-list"></div>
   </div>
 
-  <!-- 遇到问题 -->
+  <!-- 遇到问题（只展示当前系统的内容） -->
   <div class="panel" id="p-help" hidden>
     <div class="p-title" data-i="helpTitle">遇到问题</div>
-    <p class="p-note" data-i="help0"><b>不知道终端在哪？</b>Windows 在开始菜单搜「PowerShell」；Mac 在「启动台」搜「终端 / Terminal」。打开后把命令粘进去回车。</p>
-    <p class="p-note" data-i="helpUac"><b>Windows 弹「是否允许此应用对你的设备进行更改?」？</b>正常的——装 Node、Codex 组件时会弹几次，点「是」就行；点「否」会装不上。</p>
-    <p class="p-note" data-i="help1"><b>没装 Python？</b>不用管，脚本会自动帮你装（per-user，不弹 UAC）。</p>
-    <p class="p-note" data-i="help2"><b>被 360 / 电脑管家 / 杀软拦了？</b>弹窗里选「允许」或「信任」，别选「阻止」。实在不行就先临时关掉杀软，装完再打开。</p>
-    <p class="p-note" data-i="help3"><b>提示找不到 <code>claude</code>？</b>关掉终端、重新开一个再试，新装的命令需要新窗口才生效。</p>
+    <div id="help-list"></div>
   </div>
 </div>
 
@@ -217,28 +201,19 @@ var BASE="https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/
 var WIN_CMD="irm "+BASE+"install-gui.ps1 | iex";
 var NIX_CMD="bash <(curl -fsSL "+BASE+"install-gui.sh)";
 
-// Detect OS so the big command is the right one. The other OS is one tap away.
+// Detect the OS once and show ONLY its content — no "switch system" clutter, no
+// other-OS noise for a user who is plainly on one machine.
 var ua=(navigator.userAgent||"")+" "+(navigator.platform||"");
 var isWin=/Windows|Win64|Win32/i.test(ua);
-var OS = isWin ? "win" : "nix";
+var isMac=/Macintosh|Mac OS X|MacIntel|iPhone|iPad/i.test(ua);
+var OS = isWin ? "win" : (isMac ? "mac" : "linux");
+var CMD = OS==="win" ? WIN_CMD : NIX_CMD;
 
-function cmdFor(os){ return os==="win" ? WIN_CMD : NIX_CMD; }
-function prompt(os){ return os==="win" ? "&gt; " : "$ "; }
-
-// Fill the main command + the "other OS" command from the detected OS.
-function paintCommands(){
-  var primary = OS, other = OS==="win" ? "nix" : "win";
-  document.getElementById("cmd-text").textContent = cmdFor(primary);
-  document.getElementById("cmd-line").querySelector(".p").innerHTML = prompt(primary);
-  document.getElementById("copy-main").setAttribute("data-cmd", cmdFor(primary));
-  document.getElementById("term-label").textContent = primary==="win" ? "PowerShell" : "bash";
-
-  document.getElementById("other-cmd-text").textContent = cmdFor(other);
-  document.getElementById("other-cmd-line").querySelector(".p").innerHTML = prompt(other);
-  document.getElementById("copy-other").setAttribute("data-cmd", cmdFor(other));
-  document.getElementById("other-label").textContent = other==="win" ? "PowerShell" : "bash";
-}
-paintCommands();
+// Paint the single command for the detected OS.
+document.getElementById("cmd-text").textContent = CMD;
+document.getElementById("cmd-line").querySelector(".p").innerHTML = OS==="win" ? "&gt; " : "$ ";
+document.getElementById("copy-main").setAttribute("data-cmd", CMD);
+document.getElementById("term-label").textContent = OS==="win" ? "PowerShell" : "bash";
 
 // ── inline expand: one panel open at a time ──
 var row=document.getElementById("row");
@@ -254,8 +229,8 @@ row.addEventListener("click",function(e){
 });
 
 // ── copy: the primary action ──
-function wireCopy(btnId){
-  var b=document.getElementById(btnId);
+var copyMain=(function(){
+  var b=document.getElementById("copy-main");
   function doCopy(){
     var txt=b.getAttribute("data-cmd")||"";
     var done=function(){ b.classList.add("done");
@@ -265,65 +240,104 @@ function wireCopy(btnId){
   }
   b.addEventListener("click",doCopy);
   return doCopy;
-}
-var copyMain=wireCopy("copy-main"); wireCopy("copy-other");
+})();
 // clicking the command text also copies (whole hero is one big copy target)
 document.getElementById("cmd-line").addEventListener("click",copyMain);
 
-// ── i18n ──
+// ── i18n + per-OS content ──
 var I={
   zh:{
     sub:"Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙",
-    ctaSub:"打开终端粘贴回车，自动装好，跟着提示走 · 不用翻墙",
-    copy:"复制命令", copied:"已复制",
-    step1:"打开", step2:"粘贴上面这行命令", step3:"回车，跟着提示走",
-    termName:"终端", termNameWin:"PowerShell",
-    otherWin:"换成 Windows？", otherNix:"换成 Mac / Linux？",
-    otherTitleWin:"在 Windows（PowerShell）上：", otherTitleNix:"在 macOS / Linux / WSL 上：",
+    ctaSub:"回车后浏览器会自动打开安装页，跟着点几下就装好 · 全程不用翻墙",
+    copy:"复制命令",
+    step1:"打开", step2:"粘贴命令，按回车", step3:"浏览器自动打开安装页，跟着点",
+    termName:{win:"PowerShell", mac:"终端", linux:"终端"},
     tUse:"装完怎么用？", tHelp:"遇到问题？",
     useTitle:"装好之后",
-    use1:"打开终端，输入 claude 就能开聊（Codex 是 codex，Gemini 是 llxprt）。试一句：「帮我写一个能跑的 Python 小脚本」。",
-    use2:"Windows 装完后，请新开一个终端窗口，新装的命令才在 PATH 里。",
+    use:[
+      "装完安装页会直接告诉你下一步。简单说：打开终端，输入 <code>claude</code> 就能开聊（Codex 是 <code>codex</code>，Gemini 是 <code>llxprt</code>）。",
+      "试一句：「帮我写一个能跑的 Python 小脚本」。按量计费，先充几块钱能用很久。"
+    ],
+    useWin:"Windows 装完后，先<b>新开一个终端窗口</b>，新装的命令才生效。",
     helpTitle:"遇到问题",
-    help0:"不知道终端在哪？Windows 在开始菜单搜「PowerShell」；Mac 在「启动台」搜「终端 / Terminal」。打开后把命令粘进去回车。",
-    helpUac:"Windows 弹「是否允许此应用对你的设备进行更改?」？正常的——装 Node、Codex 组件时会弹几次，点「是」就行；点「否」会装不上。",
-    help1:"没装 Python？不用管，脚本会自动帮你装（per-user，不弹 UAC）。",
-    help2:"被 360 / 电脑管家 / 杀软拦了？弹窗里选「允许」或「信任」，别选「阻止」。实在不行就先临时关掉杀软，装完再打开。",
-    help3:"提示找不到 claude？关掉终端、重新开一个再试，新装的命令需要新窗口才生效。",
+    help:{
+      win:[
+        ["终端在哪？","在开始菜单搜「PowerShell」，打开把命令粘进去回车。"],
+        ["弹「是否允许此应用对你的设备进行更改?」","正常的——装 Node、Codex 组件时会弹几次，点「是」就行；点「否」会装不上。"],
+        ["被 360 / 电脑管家 / 杀软拦了？","弹窗里选「允许」或「信任」，别选「阻止」。实在不行先临时关掉杀软，装完再打开。"],
+        ["没装 Python？","不用管，脚本会自动帮你装，不弹 UAC。"],
+        ["提示找不到 <code>claude</code>？","关掉终端、重新开一个再试，新装的命令需要新窗口才生效。"]
+      ],
+      mac:[
+        ["终端在哪？","在「启动台」搜「终端 / Terminal」，打开把命令粘进去回车。"],
+        ["第一次装要等几分钟？","正常的，它在自动下依赖，跟着进度等就好。"],
+        ["提示找不到 <code>claude</code>？","关掉终端、重新开一个再试，新装的命令需要新窗口才生效。"]
+      ],
+      linux:[
+        ["终端在哪？","打开你的终端，把命令粘进去回车。"],
+        ["第一次装要等几分钟？","正常的，它在自动下依赖，跟着进度等就好。"],
+        ["提示找不到 <code>claude</code>？","关掉终端、重新开一个再试，新装的命令需要新窗口才生效。"]
+      ]
+    },
     ghRepo:"GitHub",
     privacy:"纯本地安装 · 你的 API Key 只在本机和大模型厂商之间走，绝不会发给作者或任何第三方"
   },
   en:{
     sub:"Claude Code · Codex · Gemini · One-click access to China LLMs, no VPN",
-    ctaSub:"Open a terminal, paste, hit Enter — it installs itself, no VPN",
-    copy:"Copy command", copied:"Copied",
-    step1:"Open", step2:"Paste the command above", step3:"Press Enter, follow the prompts",
-    termName:"Terminal", termNameWin:"PowerShell",
-    otherWin:"On Windows?", otherNix:"On Mac / Linux?",
-    otherTitleWin:"On Windows (PowerShell):", otherTitleNix:"On macOS / Linux / WSL:",
+    ctaSub:"Press Enter — your browser opens the setup page automatically; a few clicks and you're done · no VPN",
+    copy:"Copy command",
+    step1:"Open", step2:"Paste the command, press Enter", step3:"Your browser opens the setup page — follow it",
+    termName:{win:"PowerShell", mac:"Terminal", linux:"terminal"},
     tUse:"How to use it", tHelp:"Trouble?",
     useTitle:"After it installs",
-    use1:"Open a terminal and type claude to start (Codex is codex, Gemini is llxprt). Try: “write me a small Python script that runs”.",
-    use2:"On Windows, open a NEW terminal window after installing so the new command is on PATH.",
+    use:[
+      "The setup page tells you the next step when it's done. In short: open a terminal and type <code>claude</code> to start (Codex is <code>codex</code>, Gemini is <code>llxprt</code>).",
+      "Try: “write me a small Python script that runs”. Pay-as-you-go — a small top-up lasts a long time."
+    ],
+    useWin:"On Windows, open a <b>new terminal window</b> after installing so the new command works.",
     helpTitle:"Trouble?",
-    help0:"Where's the terminal? Windows: search “PowerShell” in Start. Mac: search “Terminal” in Launchpad. Open it, paste the command, Enter.",
-    helpUac:"Windows asks “Do you want to allow this app to make changes to your device?” — that's normal. It pops a few times (installing Node, Codex components); click Yes. Clicking No stops the install.",
-    help1:"No Python? Don't worry — the script installs it for you (per-user, no UAC).",
-    help2:"Blocked by 360 / PC Manager / antivirus? Choose Allow / Trust in the popup, not Block. If stuck, turn the antivirus off, install, then turn it back on.",
-    help3:"“claude” not found? Close the terminal and open a new one — new commands need a fresh window.",
+    help:{
+      win:[
+        ["Where's the terminal?","Search “PowerShell” in the Start menu, paste the command, Enter."],
+        ["“Allow this app to make changes?”","Normal — it pops a few times installing Node / Codex components. Click Yes; No stops the install."],
+        ["Blocked by antivirus (360 / PC Manager)?","Choose Allow / Trust in the popup, not Block. If stuck, turn it off, install, turn it back on."],
+        ["No Python?","Don't worry — the script installs it for you, no UAC prompt."],
+        ["“<code>claude</code>” not found?","Close the terminal and open a new one — new commands need a fresh window."]
+      ],
+      mac:[
+        ["Where's the terminal?","Search “Terminal” in Launchpad, paste the command, Enter."],
+        ["First install takes a few minutes?","Normal — it's pulling dependencies. Just follow the progress."],
+        ["“<code>claude</code>” not found?","Close the terminal and open a new one — new commands need a fresh window."]
+      ],
+      linux:[
+        ["Where's the terminal?","Open your terminal, paste the command, Enter."],
+        ["First install takes a few minutes?","Normal — it's pulling dependencies. Just follow the progress."],
+        ["“<code>claude</code>” not found?","Close the terminal and open a new one — new commands need a fresh window."]
+      ]
+    },
     ghRepo:"GitHub",
     privacy:"Fully local install · Your API key only goes between this machine and the model vendor — never to the author or any third party"
   }
 };
+function buildList(c, items){
+  c.innerHTML="";
+  items.forEach(function(it){
+    var p=document.createElement("p"); p.className="p-note";
+    p.innerHTML=(typeof it==="string") ? it : ("<b>"+it[0]+"</b> "+it[1]);
+    c.appendChild(p);
+  });
+}
 function applyLang(L){
   document.documentElement.lang=(L==="zh"?"zh-CN":"en");
+  var D=I[L];
   document.querySelectorAll("[data-i]").forEach(function(el){
-    var k=el.getAttribute("data-i"); if(I[L][k]!==undefined) el.textContent=I[L][k];
+    var v=D[el.getAttribute("data-i")];
+    if(typeof v==="string") el.textContent=v;
   });
-  // OS-specific labels
-  document.getElementById("term-name").textContent = I[L][OS==="win"?"termNameWin":"termName"];
-  document.getElementById("other-toggle").textContent = I[L][OS==="win"?"otherNix":"otherWin"];
-  document.getElementById("p-other-title").textContent = I[L][OS==="win"?"otherTitleNix":"otherTitleWin"];
+  document.getElementById("term-name").textContent = D.termName[OS];
+  var uses=D.use.slice(); if(OS==="win") uses.push(D.useWin);
+  buildList(document.getElementById("use-list"), uses);
+  buildList(document.getElementById("help-list"), D.help[OS]);
   document.querySelectorAll(".langsw button").forEach(function(b){
     b.classList.toggle("active", b.getAttribute("data-lang")===L);
   });
