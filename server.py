@@ -456,18 +456,22 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 /* ═══════════════════════════════════════════════════════════════════════════
    Log
    ═══════════════════════════════════════════════════════════════════════════ */
+/* Always a dark terminal — the log reads as a console (same shell look as the
+   download page), even in light mode, instead of a cream card. Colors are the
+   dark-theme palette, hardcoded so they stay legible on the dark background. */
 .log{
-  background:var(--log);border:1px solid var(--border);
+  background:#13100a;border:1px solid rgba(232,196,150,.13);
   border-radius:var(--radius-sm);padding:18px 20px;height:280px;
   overflow-y:auto;font-family:var(--mono);font-size:12px;
-  line-height:1.8;color:var(--text2);white-space:pre-wrap;word-break:break-all;
+  line-height:1.8;color:#b3ab9d;white-space:pre-wrap;word-break:break-all;
   scroll-behavior:smooth;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset;
 }
-.log .ok{color:var(--green)}
-.log .err{color:var(--red)}
-.log .dim{color:var(--text3)}
-.log .warn{color:var(--brand)}
-.log .info{color:var(--accent)}
+.log .ok{color:#9ab27e}
+.log .err{color:#d98a76}
+.log .dim{color:#847c6d}
+.log .warn{color:#e8804f}
+.log .info{color:#9fb4c6}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Post-progress controls
