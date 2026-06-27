@@ -423,6 +423,17 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 .copy-btn{font-size:12.5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);border-radius:var(--radius-xs);padding:5px 12px;transition:all .15s}
 .copy-btn:hover{color:var(--text);border-color:var(--text3)}
 .done-try,.done-cost{font-size:12.5px;color:var(--text2);line-height:1.55;margin-top:6px}
+/* "where's the terminal" visual cue — app icon + a Spotlight/Start search mockup */
+.done-find-hint{font-size:12.5px;font-weight:700;color:var(--text);margin-top:14px}
+.finder{display:flex;align-items:center;gap:12px;margin-top:9px}
+.finder-app{flex:0 0 auto;line-height:0;filter:drop-shadow(0 5px 12px rgba(0,0,0,.22))}
+.finder-app svg{display:block}
+.finder-search{flex:1;max-width:230px;display:flex;align-items:center;gap:8px;color:var(--text3);
+  background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:9px 13px}
+.finder-q{font-size:14px;font-weight:600;color:var(--text);letter-spacing:.01em}
+.finder-cur{display:inline-block;width:2px;height:15px;background:var(--brand);border-radius:1px;
+  animation:blink 1.15s steps(1) infinite}
+.finder-cap{font-size:12.5px;color:var(--text2);margin-top:9px;line-height:1.55}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Key guide
@@ -698,6 +709,27 @@ var ICON_GEMINI =
   '<stop offset="100%" stop-color="#d96570"/></linearGradient></defs>'+
   '<path d="M20 2C21 13 27 19 38 20C27 21 21 27 20 38C19 27 13 21 2 20C13 19 19 13 20 2Z" fill="url(#gg)"/>'+
   '</svg>';
+// App-icon cues for the "where's the terminal" guide. Terminal.app = dark with a
+// green prompt; PowerShell = its blue with a white prompt.
+var ICON_TERM_MAC =
+  '<svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">'+
+  '<rect x="3" y="7" width="42" height="34" rx="9" fill="#1c1c1e"/>'+
+  '<rect x="3.6" y="7.6" width="40.8" height="32.8" rx="8.4" fill="none" stroke="rgba(255,255,255,.16)"/>'+
+  '<text x="12" y="31" font-family="ui-monospace,monospace" font-size="16" font-weight="700" fill="#5fd07a">&gt;</text>'+
+  '<rect x="23" y="26.6" width="11" height="3" rx="1.5" fill="#edeef0"/>'+
+  '</svg>';
+var ICON_TERM_WIN =
+  '<svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">'+
+  '<rect x="3" y="7" width="42" height="34" rx="9" fill="#0a3a82"/>'+
+  '<rect x="3.6" y="7.6" width="40.8" height="32.8" rx="8.4" fill="none" stroke="rgba(255,255,255,.18)"/>'+
+  '<text x="11" y="31" font-family="ui-monospace,monospace" font-size="15" font-weight="700" fill="#fff">&gt;_</text>'+
+  '</svg>';
+var ICON_MAG =
+  '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">'+
+  '<circle cx="7" cy="7" r="4.3"/><path d="M10.2 10.2 14 14"/></svg>';
+// Detect the OS so the terminal guide names only the user's system.
+var GUI_UA=(navigator.userAgent||"")+" "+(navigator.platform||"");
+var GUI_OS=/Windows|Win64|Win32/i.test(GUI_UA)?"win":(/Macintosh|Mac OS X|MacIntel/i.test(GUI_UA)?"mac":"linux");
 var P = PROVIDERS_JSON;
 var agent = null, model = null, key = "", finished = false;
 
@@ -719,7 +751,12 @@ var I18N = {
     keyDoc:"官方图文教程",
     keyPrivacy:"🔒 你的 Key 只发给所选模型的官方接口和本机，绝不会发给作者或任何第三方。",
     doneTitle:"装好了 🎉", copy:"复制", copied:"已复制 ✓",
-    nextTitle:"装好了，怎么用？", nextTry:"不知道终端在哪？Mac 在「启动台」搜 Terminal，Windows 搜 PowerShell；打开后输入上面这行命令回车，再随便说一句试试，比如：帮我写一个能跑的 Python 小脚本",
+    nextTitle:"装好了，怎么用？",
+    findHint:"不知道终端在哪？",
+    findMac:"在「启动台」搜 Terminal，或按 ⌘ 空格用 Spotlight 搜",
+    findWin:"在开始菜单（左下角搜索框）搜 PowerShell",
+    findLinux:"打开你的终端（Terminal）",
+    tryPrompt:"打开后把上面那行命令粘进去回车，再随便说一句试试，比如：「帮我写一个能跑的 Python 小脚本」。",
     costNote:"💡 按量计费，先充几块钱能用很久；用量在所选厂商的官网后台可查。",
     keyBad:"✗ Key 里混了中文或特殊字符，重新复制一下", keyOk:"✓ 格式通过",
     keyRemembered:"✓ 已自动填入上次的 Key（可直接开始，或粘贴新的覆盖）",
@@ -753,7 +790,12 @@ var I18N = {
     keyDoc:"Official step-by-step guide",
     keyPrivacy:"🔒 Your key only goes to the selected model's official API and your own computer — never to the author or any third party.",
     doneTitle:"All set 🎉", copy:"Copy", copied:"Copied ✓",
-    nextTitle:"Installed — how do I use it?", nextTry:"Not sure where the terminal is? Mac: search ‘Terminal’ in Launchpad; Windows: search ‘PowerShell’. Open it, run the command above, then just say something, e.g.: write me a small Python script that runs",
+    nextTitle:"Installed — how do I use it?",
+    findHint:"Where's the terminal?",
+    findMac:"Search “Terminal” in Launchpad, or hit ⌘ Space (Spotlight)",
+    findWin:"Search “PowerShell” in the Start menu (search box, bottom-left)",
+    findLinux:"Open your terminal",
+    tryPrompt:"Open it, paste the command above and press Enter, then just say something, e.g. “write me a small Python script that runs”.",
     costNote:"💡 Pay-as-you-go — topping up a small amount lasts a long time; check usage on the vendor's website.",
     keyBad:"✗ The key has Chinese or special characters — copy it again", keyOk:"✓ Format looks good",
     keyRemembered:"✓ Filled in your last key — start now, or paste a new one to replace it",
@@ -1072,7 +1114,20 @@ function finishInstall(ok,msg,detail,skipLog){
     };
     run.appendChild(cp);
     dc.appendChild(run);
-    dc.appendChild(E("div","done-try",t("nextTry")));
+    // OS-specific "find the terminal" guide with a small visual cue (app icon +
+    // a Spotlight/Start search mockup) — only the user's own system is named.
+    var appName = GUI_OS==="win" ? "PowerShell" : "Terminal";
+    var appIcon = GUI_OS==="win" ? ICON_TERM_WIN : ICON_TERM_MAC;
+    var findKey = GUI_OS==="win" ? "findWin" : (GUI_OS==="mac" ? "findMac" : "findLinux");
+    dc.appendChild(E("div","done-find-hint",t("findHint")));
+    var finder=E("div","finder");
+    var fapp=E("div","finder-app"); fapp.innerHTML=appIcon; finder.appendChild(fapp);
+    var fsearch=E("div","finder-search");
+    fsearch.innerHTML=ICON_MAG+'<span class="finder-q">'+appName+'</span><span class="finder-cur"></span>';
+    finder.appendChild(fsearch);
+    dc.appendChild(finder);
+    dc.appendChild(E("div","finder-cap",t(findKey)));
+    dc.appendChild(E("div","done-try",t("tryPrompt")));
     if(detail)dc.appendChild(E("div","done-try",detail));
     dc.appendChild(E("div","done-cost",t("costNote")));
     var ab=$("actBar"); ab.parentNode.insertBefore(dc,ab);
