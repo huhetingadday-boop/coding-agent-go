@@ -1085,6 +1085,10 @@ function finishInstall(ok,msg,detail,skipLog){
     var home=E("button","btn btn-sec btn-sm",t("home"));
     home.onclick=function(){location.reload()};
     ab.appendChild(home);
+    // Automatic: open the terminal as soon as the done screen is up, so the
+    // user lands on a live prompt without clicking. The button stays for
+    // re-opening (or if the OS blocks the auto-open).
+    setTimeout(function(){ launchTerminal(cmd, openBtn); }, 700);
   }else{
     var errMsg=msg||t("errDefault");
     $("progFill").style.width="100%";
@@ -1164,8 +1168,9 @@ function launchTerminal(cmd, btn){
                        body:JSON.stringify({cmd:cmd})})
     .then(function(r){return r.json()})
     .then(function(d){
+      if(btn){ btn.disabled=false; }   // re-enable so the user can re-open
       if(d&&d.ok){ if(btn){ btn.textContent=t("opened"); } }
-      else { if(btn){ btn.disabled=false; btn.textContent=orig; } addLog(t("openFail"),"warn"); }
+      else { if(btn){ btn.textContent=orig; } addLog(t("openFail"),"warn"); }
     })
     .catch(function(){ if(btn){ btn.disabled=false; btn.textContent=orig; } addLog(t("openFail"),"warn"); });
 }
