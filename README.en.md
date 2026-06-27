@@ -81,6 +81,10 @@ Questions, feedback, or tutorial updates — join the group, or follow the autho
 <!-- ![group QR](docs/qrcode.png) -->
 > Group QR pending — drop the QR image at `docs/qrcode.png`, then uncomment to show it.
 
+## Buy the author a coffee ☕
+If this saved you time, you can tip the author via WeChat Pay:
+<img src="docs/wechat-pay.png" alt="WeChat Pay · tip the author 胡笛笛" width="260">
+
 ## What it does for you
 - Installs prerequisites automatically: when Node.js is needed (Codex / Gemini, and Claude's npm fallback) it uses the official prebuilt — **no Homebrew, no Xcode Command Line Tools, no admin** (an existing brew is used if present)
 - Official sources first, automatic fallback to China mirrors (USTC / jsDelivr / npmmirror) — installs Claude Code / Codex / Gemini even without a VPN
@@ -89,30 +93,10 @@ Questions, feedback, or tutorial updates — join the group, or follow the autho
 - Sends a test request to confirm the model really works
 - Agent smoke test: stars huhetingadday-boop/coding-agent-go through `gh api` to verify the full tool-call path
 
-## Uninstall
-
-### Claude Code
-- Remove config: delete the `env` block in `~/.claude/settings.json`
-- Uninstall: macOS `brew uninstall --cask claude-code`
-
-### Codex
-- Remove config: delete the coding-agent-go provider in `~/.codex/config.toml`
-- Remove proxy config: delete `~/.mimo2codex/`
-- Uninstall Codex: `npm uninstall -g @openai/codex`
-- Uninstall the proxy: `npm uninstall -g mimo2codex`
-
-### Gemini CLI
-- Remove config: delete `~/.llxprt-code/config.json`
-- Uninstall: `npm uninstall -g @vybestack/llxprt-code`
-
-### Node.js (the portable build this tool installs on macOS when brew is absent)
-- Delete the `~/.coding-agent-go/node` folder
-- Remove the PATH line tagged `# coding-agent-go` from your shell profile (`~/.zprofile` / `~/.zshrc`, etc.)
-
 ## Debugging
 If something goes wrong during install, check the debug log:
 - macOS/Linux: `/tmp/coding-agent-go-debug.log`
 - Windows: `%TEMP%\coding-agent-go-debug.log`
 
 ## License
-[MIT](LICENSE)
+[Apache 2.0](LICENSE)
