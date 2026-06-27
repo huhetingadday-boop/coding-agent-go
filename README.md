@@ -4,6 +4,10 @@
 
 一行命令，在国内装好 Claude Code / OpenAI Codex / Gemini CLI 并接上国产大模型（DeepSeek / GLM / Kimi / Qwen / MiniMax）。打开终端，粘贴，回车——不用翻墙，电脑小白跟着提示走就行。
 
+<p align="center">
+  <img src="docs/demo.gif" alt="coding-agent-go 安装演示" width="720">
+</p>
+
 > 🚧 双击即用的桌面 App（原生窗口）正在开发中（WIP），暂未发布；现在请用下面的一行命令安装。
 
 ## 一键安装（打开终端，粘贴，回车）
@@ -20,14 +24,6 @@ irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/instal
 ```
 两条命令都会自动下载 `server.py` 和 `providers.json`，起本机 UI 服务并打开浏览器，不用先 clone。WSL 会装到 WSL 的 Linux 环境，请在 WSL 终端里用；想在 Windows 原生终端里用，就走 PowerShell 这条。
 > 没装 Python 也没关系：脚本会自动装（per-user，不弹 UAC）。如果命令行里偏好 cmd/批处理，也可以用：`$f="$env:TEMP\acgg.bat"; iwr https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.bat -OutFile $f; cmd /c $f`
-
-## 演示
-<!--
-  录制指引：录一段 30 秒的完整过程 —— 打开终端 → 粘贴安装命令 → GUI 自动装好 → 终端输入 claude 能用。
-  用 ScreenToGif（Windows）或 Kap（macOS）录屏，导出成 GIF，命名为 demo.gif 放到 docs/ 目录，再取消下面一行的注释。
--->
-<!-- ![演示](docs/demo.gif) -->
-> 演示动图待补 —— 按上面注释里的指引录一段放到 `docs/demo.gif`，再取消注释即可显示。
 
 ## 装好之后怎么用
 安装器跑完会直接告诉你下一步。简单说：

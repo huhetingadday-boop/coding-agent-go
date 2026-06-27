@@ -106,6 +106,12 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .s-n{width:21px;height:21px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
   background:var(--brand);color:var(--brand-ink);font-family:var(--mono);font-weight:700;font-size:12px}
 
+/* demo — a small autoplaying MP4 (≈10× lighter than a GIF, key for CN/no-VPN) */
+.demo{margin:clamp(24px,4vw,34px) auto 0;max-width:600px}
+.demo video{display:block;width:100%;border-radius:14px;background:#0f0c07;
+  border:1px solid var(--line2);
+  box-shadow:0 26px 72px -28px rgba(224,128,79,.45),var(--shadow)}
+
 /* ── inline-expand row ── */
 .inline-row{margin-top:26px;display:flex;flex-wrap:wrap;gap:9px 22px;justify-content:center}
 .inline-row button{background:none;border:0;cursor:pointer;font:inherit;font-size:13.5px;color:var(--ink3);
@@ -177,6 +183,10 @@ footer{margin-top:54px;text-align:center;color:var(--ink3);font-size:12.5px;line
     <li><span class="s-n">2</span><span data-i="step2">粘贴命令，按回车</span></li>
     <li><span class="s-n">3</span><span data-i="step3">浏览器自动打开安装页，跟着点</span></li>
   </ol>
+
+  <div class="demo">
+    <video src="demo.mp4" autoplay loop muted playsinline aria-label="安装演示"></video>
+  </div>
 
   <div class="inline-row" id="row">
     <button type="button" aria-controls="p-use"  aria-expanded="false"><span data-i="tUse">装完怎么用？</span><span class="cv">⌄</span></button>

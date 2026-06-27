@@ -4,6 +4,10 @@
 
 One command installs Claude Code / OpenAI Codex / Gemini CLI and wires them to China LLMs (DeepSeek / GLM / Kimi / Qwen / MiniMax). Open a terminal, paste, press Enter — no VPN, just follow the prompts.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="coding-agent-go install demo" width="720">
+</p>
+
 > 🚧 A double-click desktop app (native window) is a work in progress, not released yet — for now, use the one-line command below.
 
 ## One-line install (open a terminal, paste, Enter)
@@ -20,14 +24,6 @@ irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/instal
 ```
 Both commands download `server.py` and `providers.json`, start the local UI server, and open the browser — no clone needed. WSL installs into the WSL Linux environment, so run it in a WSL terminal; to use the native Windows terminal, take the PowerShell path.
 > No Python? No problem: the script installs it automatically (per-user, no UAC prompt). If you prefer cmd/batch on the command line, you can also use: `$f="$env:TEMP\acgg.bat"; iwr https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.bat -OutFile $f; cmd /c $f`
-
-## Demo
-<!--
-  Recording guide: capture a 30-second run — open a terminal → paste the install command → the GUI installs everything → type claude in a terminal and it works.
-  Record with ScreenToGif (Windows) or Kap (macOS), export a GIF named demo.gif into docs/, then uncomment the line below.
--->
-<!-- ![demo](docs/demo.gif) -->
-> Demo GIF pending — record one per the guide above, drop it at `docs/demo.gif`, then uncomment to show it.
 
 ## After it installs — how to use it
 The installer tells you the next step when it finishes. In short:
