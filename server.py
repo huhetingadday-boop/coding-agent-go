@@ -135,6 +135,7 @@ HTML = r"""<!DOCTYPE html>
   color-scheme: light dark;
   --bg:        #141009;
   --surface:   #232019;
+  --panel:     rgba(35,31,24,.72);
   --surface2:  #2d2922;
   --border:    #37322a;
   --border2:   #463f35;
@@ -159,9 +160,9 @@ HTML = r"""<!DOCTYPE html>
   --badge-txt: #1b1916;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
   --shadow-md: 0 2px 10px rgba(0,0,0,.45), 0 16px 50px rgba(0,0,0,.4);
-  --radius:    18px;
-  --radius-sm: 12px;
-  --radius-xs: 10px;
+  --radius:    20px;
+  --radius-sm: 13px;
+  --radius-xs: 9px;
   --maxw:      820px;
   --font:      -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --display:   'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -172,6 +173,7 @@ HTML = r"""<!DOCTYPE html>
   :root {
     --bg:        #f0eee6;
     --surface:   #fdfcf9;
+    --panel:     rgba(255,253,247,.82);
     --surface2:  #f3f0e8;
     --border:    #e7e2d6;
     --border2:   #dad3c5;
@@ -225,7 +227,7 @@ body::before{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity:.035;
 }
-.header,.steps,.main,.footer{position:relative;z-index:1}
+.hero,.steps,.main,.footer{position:relative;z-index:1}
 a{color:var(--brand);text-decoration:none;font-weight:500}
 a:hover{text-decoration:underline}
 
@@ -242,24 +244,29 @@ a:hover{text-decoration:underline}
 /* ═══════════════════════════════════════════════════════════════════════════
    Layout
    ═══════════════════════════════════════════════════════════════════════════ */
-.header{
-  display:flex;align-items:center;gap:15px;
-  padding:60px 28px 4px;width:100%;max-width:var(--maxw);
-}
-.header-icon{
-  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+/* hero — centred, same shape as the download page: logo + kicker + big gradient wordmark */
+.hero{width:100%;max-width:var(--maxw);padding:54px 28px 6px;text-align:center}
+.hero-top{display:flex;align-items:center;gap:14px;text-align:left}
+.logo{
+  width:46px;height:46px;border-radius:14px;flex:0 0 auto;
   display:grid;place-items:center;line-height:1;
-  font-family:var(--mono);font-size:26px;font-weight:700;color:#fff;
+  font-family:var(--mono);font-size:25px;font-weight:700;color:#fff;
   background:linear-gradient(150deg,var(--brand2),var(--brand-dim));
   box-shadow:0 8px 24px -6px var(--brand-bg),0 1px 0 rgba(255,255,255,.35) inset;
 }
-.header-icon b{display:inline-block;width:.5ch;height:1.05em;margin-left:.1em;background:#fff;
+.logo b{display:inline-block;width:.5ch;height:1.05em;margin-left:.1em;background:#fff;
   border-radius:2px;transform:translateY(.08em);animation:blink 1.15s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.header-title{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;font-weight:600;
+  color:var(--brand);text-transform:uppercase}
+.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(34px,6.4vw,54px);
+  line-height:1;letter-spacing:-.03em;margin:16px 0 0;
   background:linear-gradient(170deg,var(--text),var(--text) 58%,var(--brand2));
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.header-sub{font-size:13px;color:var(--text3);margin-top:4px;letter-spacing:.005em}
+.tag{font-size:15px;color:var(--text2);margin:13px 0 0}
+.hero-top{animation:rise .55s cubic-bezier(.22,.7,.25,1) both;animation-delay:.04s}
+.wordmark{animation:rise .6s cubic-bezier(.22,.7,.25,1) both;animation-delay:.12s}
+.tag{animation:rise .6s cubic-bezier(.22,.7,.25,1) both;animation-delay:.2s}
 
 /* ───── step indicator ───── */
 .steps{
@@ -304,9 +311,10 @@ a:hover{text-decoration:underline}
    Cards
    ═══════════════════════════════════════════════════════════════════════════ */
 .card{
-  background:var(--surface);border:1px solid var(--border);
+  background:var(--panel);border:1px solid var(--border);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-radius:var(--radius);padding:44px 40px;margin-top:24px;
-  box-shadow:var(--shadow-md);
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,var(--shadow-md);
   transition:transform .25s ease,opacity .25s ease,box-shadow .25s ease,
              background .2s,border-color .2s;
 }
@@ -420,7 +428,7 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
    Key guide
    ═══════════════════════════════════════════════════════════════════════════ */
 .key-wrap{display:flex;gap:36px}
-@media(max-width:560px){.key-wrap{flex-direction:column;gap:24px}.card{padding:26px 20px}.card-head{margin-bottom:22px}.header{padding:40px 22px 4px}}
+@media(max-width:560px){.key-wrap{flex-direction:column;gap:24px}.card{padding:26px 20px}.card-head{margin-bottom:22px}.hero{padding:38px 22px 6px}}
 .key-steps{flex:1.2}
 .input-wrap{flex:1}
 .key-step{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px}
@@ -521,10 +529,9 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .pulse{animation:pulse 2s infinite}
-/* ───── language switcher (top-right) ───── */
+/* ───── language switcher — inline pill in the hero top row ───── */
 .langsw{
-  position:fixed;top:18px;right:18px;z-index:5;
-  display:flex;gap:2px;padding:3px;border-radius:999px;
+  margin-left:auto;display:flex;gap:2px;padding:3px;border-radius:999px;
   background:var(--surface2);border:1px solid var(--border);box-shadow:var(--shadow-sm);
 }
 .langsw button{
@@ -535,22 +542,21 @@ input.ok{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg
 }
 .langsw button.active{background:var(--brand);color:#fff}
 .langsw button:not(.active):hover{color:var(--text)}
-@media(max-width:560px){.langsw{top:12px;right:12px}}
 </style>
 </head>
 <body>
 
-<div class="langsw" id="langsw">
-  <button type="button" data-lang="zh">中文</button>
-  <button type="button" data-lang="en">EN</button>
-</div>
-
-<header class="header">
-  <div class="header-icon" aria-hidden="true">›<b></b></div>
-  <div>
-    <div class="header-title">Coding Agent — Go Go Go</div>
-    <div class="header-sub" id="hdrSub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</div>
+<header class="hero">
+  <div class="hero-top">
+    <div class="logo" aria-hidden="true">›<b></b></div>
+    <div class="kicker">GO · GO · GO</div>
+    <div class="langsw" id="langsw">
+      <button type="button" data-lang="zh">中文</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
   </div>
+  <h1 class="wordmark">Coding&nbsp;Agent</h1>
+  <p class="tag" id="hdrSub">Claude Code · Codex · Gemini · 国产模型一键直连，免翻墙</p>
 </header>
 <nav class="steps" id="steps" aria-label="安装步骤">
   <div class="step is-active"><span class="step-dot">1</span><span class="step-name">选 Agent</span></div>
