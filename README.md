@@ -5,7 +5,7 @@
 一行命令，在国内装好 Claude Code / OpenAI Codex / Gemini CLI 并接上国产大模型（DeepSeek / GLM / Kimi / Qwen / MiniMax）。打开终端，粘贴，回车——不用翻墙，电脑小白跟着提示走就行。
 
 <p align="center">
-  <img src="docs/demo.gif" alt="coding-agent-go 安装演示" width="720">
+  <img src="docs/demo.gif" alt="coding-agent-go 安装演示" width="600">
 </p>
 
 > 🚧 双击即用的桌面 App（原生窗口）正在开发中（WIP），暂未发布；现在请用下面的一行命令安装。

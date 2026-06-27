@@ -5,7 +5,7 @@
 One command installs Claude Code / OpenAI Codex / Gemini CLI and wires them to China LLMs (DeepSeek / GLM / Kimi / Qwen / MiniMax). Open a terminal, paste, press Enter — no VPN, just follow the prompts.
 
 <p align="center">
-  <img src="docs/demo.gif" alt="coding-agent-go install demo" width="720">
+  <img src="docs/demo.gif" alt="coding-agent-go install demo" width="600">
 </p>
 
 > 🚧 A double-click desktop app (native window) is a work in progress, not released yet — for now, use the one-line command below.
