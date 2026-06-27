@@ -1715,6 +1715,17 @@ def _run(cmd, **kw):
     no concurrent write. Same behavior on macOS, Linux, and Windows."""
     kw.setdefault("capture_output", True)
     kw.setdefault("creationflags", _NO_WINDOW)  # no flashing console in the .exe
+    # Never let an install subprocess read the terminal. npm postinstall scripts
+    # and vendor install.sh (notably @openai/codex's "Start Codex now? [y/N]")
+    # otherwise prompt on /dev/tty and block forever in the very terminal the
+    # user ran the one-liner from — pressing y doesn't even resume it. Detach
+    # stdin (unless the caller is piping `input=`) and, on Unix, start a new
+    # session so there's no controlling tty for a prompt to grab; the prompt then
+    # sees a non-interactive stdin, defaults to "no", and the install flows on.
+    if "input" not in kw:
+        kw.setdefault("stdin", subprocess.DEVNULL)
+    if not IS_WIN:
+        kw.setdefault("start_new_session", True)
     timeout = kw.pop("timeout", 300)
     check = kw.pop("check", True)
     cmd = _win_cmd(cmd)
