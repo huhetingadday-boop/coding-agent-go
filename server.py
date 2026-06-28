@@ -2227,6 +2227,25 @@ def _write_claude_cfg(sse, pv, api_key):
     sse(log=_t(f"  已写入 {cfg}", f"  Wrote {cfg}"))
 
 
+def _is_balance_error(code, body):
+    """True when the vendor said 'out of balance / suspended' (HTTP 402, or an
+    insufficient-balance message). This actually proves the key authenticated and
+    the path is reachable — only the account has no money. The install succeeded;
+    it's a warning, not a failure, and the agent works as soon as they top up."""
+    low = (body or "").lower()
+    return (code == 402
+            or "insufficient balance" in low or "exceeded_current_quota" in low
+            or "recharge" in low or "suspended" in low or "arrears" in low
+            or "余额" in (body or "") or "欠费" in (body or ""))
+
+
+# Warning shown when verify hits a balance error — the install is fine, only the
+# account is empty. cls="warn" (orange), never the red failure path.
+_BALANCE_WARN = ("⚠ 链路通了、Key 也没问题，只是账户余额不足 —— 到厂商控制台充值后即可使用（不影响安装）",
+                 "⚠ Connection and key are fine — the account is just out of balance. "
+                 "Top up in the vendor console and it's ready. (Install is unaffected.)")
+
+
 def _friendly_upstream_error(code, body):
     """Turn an upstream/proxy error into a clear message users can act on.
     Localized to the running install's language (_ACTIVE_LANG)."""
@@ -2301,6 +2320,10 @@ def _verify_claude(sse, pv, api_key):
             code, bt = _ping(True)
         if code == 200:
             sse(log=_t("  连通 OK", "  Connected OK"), cls="ok")
+            return
+        if _is_balance_error(code, bt):
+            # Key + path work; the account is just empty. Warn, don't fail.
+            sse(log=_t(*_BALANCE_WARN), cls="warn")
             return
         sse(log=f"  HTTP {code}", cls="err")
         if bt:
@@ -3099,6 +3122,10 @@ def _verify_codex(sse, pv, api_key):
                 bt = e.read().decode()[:300]
             except Exception:
                 pass
+            if _is_balance_error(e.code, bt):
+                # Key + path work; the account is just empty. Warn, don't fail.
+                sse(log=_t(*_BALANCE_WARN), cls="warn")
+                return
             raise Exception(_friendly_upstream_error(e.code, bt))
         except (urllib.error.URLError, socket.timeout, ConnectionError):
             if attempt < 2:
