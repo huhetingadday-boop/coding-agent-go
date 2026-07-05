@@ -1780,6 +1780,10 @@ def _run(cmd, **kw):
 
 # China mirror for Homebrew bottles/formulae (USTC) and npm (npmmirror).
 NPM_MIRROR = "https://registry.npmmirror.com"
+# Official npm registry. Passed explicitly on fallback — dropping --registry is
+# NOT enough, because a user whose default registry is already the mirror (a
+# common ~/.npmrc setup in China) would just hit the same mirror again.
+NPM_OFFICIAL = "https://registry.npmjs.org"
 # China-hosted GitHub proxies. They fetch the asset from GitHub server-side, so
 # the user never needs direct github.com access (which we must assume may be
 # blocked). Always tried before any direct github.com URL.
@@ -1811,7 +1815,7 @@ def _npm_global(pkg, sse):
         return
     except Exception:
         sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
-        _run(base, timeout=180)
+        _run(base + ["--registry", NPM_OFFICIAL], timeout=180)
 
 
 def _gh_authed():
@@ -2783,23 +2787,30 @@ def _install_m2c(sse):
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
     # better-sqlite3's prebuilt is pulled from GitHub releases — slow or blocked
-    # behind the GFW. Capture the first attempt; if the prebuilt can't be
-    # fetched, pre-seed it from a CN GitHub proxy (see _seed_…) and retry once.
-    # Same on every OS — we assume the user may have no GitHub access at all.
+    # behind the GFW. Capture each attempt; if the prebuilt can't be fetched,
+    # pre-seed it from a CN GitHub proxy (see _seed_…) and retry once. Same on
+    # every OS — we assume the user may have no GitHub access at all. If the
+    # mirror registry itself is unreachable (e.g. a broken proxy giving connect
+    # EBADF), fall back to the official registry — a genuinely different host,
+    # unlike dropping --registry (a CN user's default is often the mirror again).
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
-    cmd = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
-           "--cache", cache, "--foreground-scripts", "--registry", NPM_MIRROR]
-    r = _run(cmd, check=False, text=True, timeout=300)
-    if r.returncode == 0:
-        _refresh_windows_path()
-        return
-    out = (r.stdout or "") + (r.stderr or "")
-    if _seed_better_sqlite3_prebuild(sse, out):
-        _run(cmd, timeout=300)
-        _refresh_windows_path()
-        return
-    raise Exception(_t("mimo2codex 安装失败：better-sqlite3 预编译包获取失败（见调试日志）",
-                       "mimo2codex install failed: couldn't fetch the better-sqlite3 prebuilt (see debug log)"))
+    base = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
+            "--cache", cache, "--foreground-scripts"]
+    for registry in (NPM_MIRROR, NPM_OFFICIAL):
+        if registry == NPM_OFFICIAL:
+            sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
+        cmd = base + ["--registry", registry]
+        r = _run(cmd, check=False, text=True, timeout=300)
+        if r.returncode == 0:
+            _refresh_windows_path()
+            return
+        out = (r.stdout or "") + (r.stderr or "")
+        if _seed_better_sqlite3_prebuild(sse, out):
+            _run(cmd, timeout=300)
+            _refresh_windows_path()
+            return
+    raise Exception(_t("mimo2codex 安装失败：镜像与官方源都不通，或 better-sqlite3 预编译包获取失败（见调试日志）",
+                       "mimo2codex install failed: mirror and official registry both unreachable, or the better-sqlite3 prebuilt couldn't be fetched (see debug log)"))
 
 
 def _mimo2codex_script():
