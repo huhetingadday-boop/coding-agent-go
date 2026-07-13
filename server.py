@@ -1277,7 +1277,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with _install_lock:
                 if _installing:
                     self._send_sse()
-                    self._sse({"error": "正在装别的，等它跑完", "log": "✗ 正在装别的，等它跑完", "cls": "err"})
+                    self._sse({"error": "你的命令已经在跑了，如果想重新安装，请重新运行命令", "log": "✗ 你的命令已经在跑了，如果想重新安装，请重新运行命令", "cls": "err"})
                     return
                 _installing = True
 
@@ -1811,7 +1811,10 @@ def _npm_global(pkg, sse):
     base = ["npm", "install", "-g", pkg, "--no-fund", "--no-audit", "--cache", cache]
     sse(log=_t("  从 npmmirror 镜像安装…", "  Installing from the npmmirror mirror…"), cls="dim")
     try:
-        _run(base + ["--registry", NPM_MIRROR], timeout=180)
+        # 300s (not 180): some CLIs ship a large native binary — codex alone is a
+        # ~115MB+ platform package — which is slow to pull on a no-VPN link. Give
+        # the good China source room to finish before the slower official fallback.
+        _run(base + ["--registry", NPM_MIRROR], timeout=300)
         return
     except Exception:
         sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
@@ -2171,13 +2174,27 @@ def _install_claude(sse):
         _refresh_windows_path()
         sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
         return
-    # macOS / Linux: the official installer drops a standalone binary and needs
-    # no Node — but it must reach claude.ai, which is blocked in mainland China
-    # without a VPN. Try it (fast 8s probe), and if it can't connect, fall back
-    # to npm via the China mirror (npmmirror) — the same no-VPN path Windows
-    # uses. Claude Code ships as @anthropic-ai/claude-code on npm. This keeps
-    # the "免翻墙 / no VPN" promise even when claude.ai is unreachable.
-    sse(log=_t("走官方源…", "Trying the official installer…"), cls="dim")
+    # macOS / Linux: mirror first — npm via the China mirror (npmmirror), the
+    # same no-VPN path Windows uses (Claude Code ships as @anthropic-ai/claude-
+    # code on npm). The npm path needs Node, so ensure it first. Only if the
+    # mirror fails do we fall back to the official claude.ai installer, which
+    # drops a standalone binary but must reach claude.ai — blocked in mainland
+    # China without a VPN. Mirror-first keeps the "免翻墙 / no VPN" promise.
+    # The whole npm path (Node prerequisite + install) is the "mirror" attempt —
+    # if any part fails, fall through to the official claude.ai installer, which
+    # needs no Node. So a broken Node install can't strand a user who could have
+    # used the standalone binary.
+    try:
+        _ensure_brew_path()
+        if not (_which("node") and _which("npm")):
+            _install_node(sse)  # mac: portable tarball from npmmirror, no VPN
+        _npm_global("@anthropic-ai/claude-code", sse)
+        sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
+        return
+    except Exception:
+        pass
+    sse(log=_t("镜像装不上，改用官方安装器兜底…",
+               "Mirror failed — falling back to the official installer…"), cls="dim")
     try:
         p = subprocess.run(
             ["curl", "-fsSL", "--connect-timeout", "8",
@@ -2187,13 +2204,8 @@ def _install_claude(sse):
             return
     except Exception:
         pass
-    sse(log=_t("官方源有点慢（没翻墙也没关系），换国内镜像更快…",
-               "Official source is slow (no VPN needed) — switching to the faster China mirror…"), cls="dim")
-    _ensure_brew_path()
-    if not (_which("node") and _which("npm")):
-        _install_node(sse)  # mac: brew + USTC mirror; both work without a VPN
-    _npm_global("@anthropic-ai/claude-code", sse)
-    sse(log=_t("  Claude Code 安装完成 (npm)", "  Claude Code installed (npm)"), cls="ok")
+    raise Exception(_t("Claude Code 安装失败：国内镜像和官方源都不通",
+                       "Claude Code install failed: both the China mirror and the official source are unreachable"))
 
 
 def _write_claude_cfg(sse, pv, api_key):
@@ -2715,25 +2727,31 @@ def _install_codex(sse):
         _npm_global("@openai/codex", sse)
         _refresh_windows_path()  # so `codex` lands on PATH for a fresh shell
         return
-    # macOS/Linux: try the official installer, but chatgpt.com is blocked in
-    # mainland China without a VPN, so fall back to npm via npmmirror — same
-    # no-VPN path as Claude. Print the switch on any failure mode (non-zero
-    # exit or exception), not only on exception.
-    official_ok = False
+    # macOS/Linux: mirror first — npm via npmmirror (fast, no VPN). Node is
+    # already installed by the plan step before this one. Only if the mirror
+    # fails do we fall back to the official chatgpt.com installer, which pulls
+    # the ~100MB+ binary from GitHub releases — slow/blocked in mainland China,
+    # so it's the last resort, not the first try.
+    sse(log=_t("  Codex 体积较大（约 100MB+ 二进制），下载要一两分钟，请耐心等待…",
+               "  Codex is large (~100MB+ binary); the download can take a minute or two, please wait…"), cls="dim")
+    try:
+        _npm_global("@openai/codex", sse)
+        return
+    except Exception:
+        pass
+    sse(log=_t("镜像装不上，改用官方安装器兜底…",
+               "Mirror failed — falling back to the official installer…"), cls="dim")
     try:
         p = subprocess.run(
             ["curl", "-fsSL", "--connect-timeout", "8",
              "https://chatgpt.com/codex/install.sh"], capture_output=True, timeout=15)
         if p.returncode == 0:
             _run(["bash"], input=p.stdout, timeout=120)
-            official_ok = True
+            return
     except Exception:
         pass
-    if official_ok:
-        return
-    sse(log=_t("官方源有点慢（没翻墙也没关系），换国内镜像更快…",
-               "Official source is slow (no VPN needed) — switching to the faster China mirror…"), cls="dim")
-    _npm_global("@openai/codex", sse)
+    raise Exception(_t("Codex 安装失败：国内镜像和官方源都不通",
+                       "Codex install failed: both the China mirror and the official source are unreachable"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
