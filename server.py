@@ -1014,10 +1014,28 @@ document.addEventListener("keydown",function(e){
   if(e.key==="Escape" && !$("ovl").classList.contains("hidden")) hideOvl();
 });
 
+var barEl=null;
 function addLog(msg,cls){
   var d = E("div","log-line"+(cls?" "+cls:""),msg);
-  var lg=$("log");lg.appendChild(d);lg.scrollTop=lg.scrollHeight;
+  var lg=$("log");
+  // Keep a live progress bar pinned at the bottom: insert new lines above it.
+  if(barEl&&barEl.parentNode) lg.insertBefore(d,barEl); else lg.appendChild(d);
+  lg.scrollTop=lg.scrollHeight;
 }
+function rep(ch,n){var s="";for(var i=0;i<n;i++)s+=ch;return s;}
+// A filling ASCII progress bar for any step that runs more than a few seconds
+// (downloads, npm/brew installs). For npm/brew the % is an elapsed-time estimate
+// (they expose no byte count); for direct downloads it's the real byte %. One
+// line, updated in place; cleared when the step ends.
+function setBar(pct,secs){
+  pct=pct<0?0:(pct>100?100:Math.round(pct));
+  var N=22,fill=Math.round(pct/100*N);
+  var s="  ["+rep("█",fill)+rep("░",N-fill)+"] "+pct+"%"+(secs!=null?"  "+secs+"s":"");
+  if(!barEl||!barEl.parentNode){barEl=E("div","log-line dim");$("log").appendChild(barEl);}
+  barEl.textContent=s;
+  $("log").scrollTop=$("log").scrollHeight;
+}
+function clearBar(){if(barEl&&barEl.parentNode)barEl.parentNode.removeChild(barEl);barEl=null;}
 // Clipboard fallback for older browsers / non-secure contexts where
 // navigator.clipboard is unavailable.
 function fallbackCopy(text){
@@ -1031,6 +1049,7 @@ function fallbackCopy(text){
 
 var curStepLabel="";
 function setProg(pct,label){
+  clearBar();   // a new step starts: drop the previous step's live bar
   $("progFill").style.width = pct+"%";
   curStepLabel = label||"";
   $("progLabel").innerHTML='<span class="dot"></span>';
@@ -1051,6 +1070,7 @@ function setTick(secs){
 function finishInstall(ok,msg,detail,skipLog){
   if(finished) return;   // idempotent: error + cancel could both fire
   finished = true;
+  clearBar();
   $("progFill").classList.remove("busy");
   if(ok){
     $("progFill").style.width="100%";
@@ -1134,6 +1154,7 @@ async function doInstall(){
         if(ev.log)addLog(ev.log,ev.cls||"");
         if(ev.pct!==undefined)setProg(ev.pct,ev.label||"");
         if(ev.tick!==undefined)setTick(ev.tick);
+        if(ev.bar!==undefined)setBar(ev.bar.p,ev.bar.s);
         if(ev.done){gotDone=true;setProg(100,ev.label||t("doneLabel"));
           setTimeout(function(){finishInstall(true,ev.msg||"",ev.detail||"")},500)}
         if(ev.error){gotErr=true;
@@ -1542,12 +1563,20 @@ def _download(url, dest, timeout=60):
     sse = _ACTIVE_SSE
     t0 = time.time()
     last_beat = 0.0
+    last_bar = 0.0
+    barred = False
     with _ur.urlopen(url, timeout=timeout) as r, open(dest, "wb") as f:
+        try:
+            total = int(r.headers.get("Content-Length") or 0)
+        except Exception:
+            total = 0
+        got = 0
         while True:
             chunk = r.read(65536)
             if not chunk:
                 break
             f.write(chunk)
+            got += len(chunk)
             if sse:
                 el = time.time() - t0
                 if el - last_beat >= 3:
@@ -1556,6 +1585,23 @@ def _download(url, dest, timeout=60):
                         sse(tick=round(el))
                     except Exception:
                         pass
+                # Show a bar: the REAL byte % when the server sent a
+                # Content-Length for a big file; otherwise (chunked / unknown
+                # size) fall back to the same elapsed estimate as npm/brew, so a
+                # slow download always shows a bar. Throttle to ~0.6s.
+                if el - last_bar >= 0.6 and (total > 2_000_000 or el >= 3):
+                    last_bar = el
+                    barred = True
+                    try:
+                        p = min(99, round(got / total * 100)) if total > 2_000_000 else _bar_est(el)
+                        sse(bar={"p": p, "s": round(el)})
+                    except Exception:
+                        pass
+    if sse and barred:
+        try:
+            sse(bar={"p": 100, "s": round(time.time() - t0)})
+        except Exception:
+            pass
 
 
 def _refresh_windows_path():
@@ -1667,6 +1713,13 @@ _ACTIVE_SSE = None
 _ACTIVE_LANG = "zh"
 
 
+def _bar_est(elapsed, half=30):
+    """Estimated progress % for a black-box step (npm/brew) that exposes no byte
+    count: a decelerating curve that reaches 50% at `half` seconds and eases
+    toward but never past 95%; the step snaps to 100% when it actually returns."""
+    return min(95, round(100 * (1 - 0.5 ** (elapsed / half))))
+
+
 def _await_with_tick(fn, timeout=120):
     """Run a blocking callable in a worker thread and emit a `tick` heartbeat
     every 2s to the active SSE, so a slow network call (verify ping, proxy
@@ -1692,6 +1745,11 @@ def _await_with_tick(fn, timeout=120):
             el = time.time() - t0
             try:
                 sse(tick=round(el))
+                # Past a few seconds, fill an ASCII bar so any slow (>10s) wait
+                # shows motion, not just a ticking number. Elapsed-based estimate
+                # here (no byte count); it snaps to 100% when the call returns.
+                if el >= 3:
+                    sse(bar={"p": _bar_est(el), "s": round(el)})
                 # Move the log body too, not just the elapsed label: a long quiet
                 # wait (vendor ping, proxy start) otherwise looks frozen even
                 # while the timer ticks. A dim line every ~12s shows it's alive.
@@ -1756,6 +1814,12 @@ def _run(cmd, **kw):
             el = time.time() - t0
             try:
                 sse(tick=round(el))
+                # Past a few seconds, fill an ASCII bar so any slow (>10s) step
+                # shows motion. npm/brew give no byte count, so this is an
+                # elapsed estimate that eases toward 95%; the step jumps to 100%
+                # when the command returns.
+                if el >= 3:
+                    sse(bar={"p": _bar_est(el), "s": round(el)})
                 # The elapsed label ticks, but a slow npm/brew step prints
                 # nothing, so the log body looks frozen ("卡住了"). Emit a dim
                 # heartbeat line every ~12s so the user can see it's still going.
