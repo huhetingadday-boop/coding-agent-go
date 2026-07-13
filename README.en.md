@@ -15,6 +15,10 @@ One command does it all: it downloads the installer (`server.py` + `providers.js
 ### macOS / Linux / WSL (bash)
 Open a terminal (in WSL use the same command), paste this one line, press Enter:
 ```bash
+bash <(curl -fsSL --connect-timeout 8 https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/install-gui.sh)
+```
+If that can't connect, use the jsDelivr fallback (pinned to the latest release):
+```bash
 bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)
 ```
 ### Windows PowerShell
@@ -61,7 +65,7 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 ## Security & privacy
 - **Your API key only flows between your computer and the LLM vendor** — never to the author or any third party. All config is written only to local files on your machine.
 - **The install scripts are public — read them before you run them.** If `irm | iex` / `curl | sh` makes you uneasy, open the script in your browser first and decide: [install-gui.ps1](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.ps1) (Windows) · [install-gui.sh](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.sh) (macOS/Linux/WSL).
-- **The install command is pinned to the latest release.** jsdelivr's `@latest` resolves only to a tagged release, never an unreleased dev branch — so the command is stable and reproducible.
+- **The main command is tuned for China networks; the fallback is pinned to a release.** The macOS/Linux main command goes through ghproxy straight to GitHub, avoiding the SSL errors and throttling jsdelivr occasionally hits in China; it tracks the `main` branch. To run only tagged releases, use the jsDelivr fallback above (the Windows command is also jsDelivr `@latest`).
 
 ## Trouble?
 - **Where's the terminal?** Windows: search "PowerShell" in Start. Mac: search "Terminal" in Launchpad. Open it, paste the command, Enter.
