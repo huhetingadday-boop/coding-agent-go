@@ -1,14 +1,19 @@
 # Releasing
 
 The install channels split. The **primary** commands (macOS/Linux, Windows, and
-the download page) go through the `ghfast.top` ghproxy to
-`raw.githubusercontent.com/.../main/`, so they track `main` — a push to `main`
-changes the install script for those users right away, no tag needed. So keep
-`main`'s install scripts working. The **jsdelivr `@latest` fallback**, the app
-files the scripts fetch (`server.py`, `providers.json`), and the double-click
-installers all resolve to the **newest git tag** — pushing to `main` never
-changes those, only tagging does. This keeps a viral post's fallback command
-stable while a tagged fix still reaches everyone who runs it.
+the download page) fetch from the **Gitee mirror** at
+`gitee.com/huhetingadday-boop/coding-agent-go/raw/main/`, with the `ghfast.top`
+ghproxy to `raw.githubusercontent.com/.../main/` as the fallback. Both track
+`main` — a push to `main` changes the install script for those users right away,
+no tag needed. So keep `main`'s install scripts working. Gitee is a China domain
+the GFW never DNS-pollutes, so it resolves even on the broken ISP DNS that makes
+ghproxy/jsdelivr fail (curl error 6/28) — that's why it's primary; but it only
+stays fresh because `mirror-to-gitee.yml` pushes every `main` commit there (see
+Notes). The **jsdelivr `@latest` fallback**, the app files the scripts fetch when
+the mirrors above are unreachable (`server.py`, `providers.json`), and the
+double-click installers all resolve to the **newest git tag** — pushing to `main`
+never changes those, only tagging does. This keeps a viral post's fallback
+command stable while a tagged fix still reaches everyone who runs it.
 
 ## Cut a new version
 1. Land your changes on `main` and wait for the `tests` workflow to go green. Never tag a red build — `@latest` ships a new tag to every user instantly.
@@ -30,6 +35,10 @@ curl -s "https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/s
 ```
 
 ## Notes
+- **Gitee mirror sync.** Gitee's URL-imported repo does NOT auto-sync from GitHub — it is a one-time snapshot. The `mirror-to-gitee.yml` workflow pushes `main` and every `v*` tag to Gitee within ~30s of a push, so the China-primary install commands never serve stale scripts. No manual release step needed. It requires a one-time `GITEE_TOKEN` secret (create at Gitee → 私人令牌 with `projects` scope, then add under this repo's Settings → Secrets and variables → Actions). Until that secret exists the workflow skips (it does not fail the build). Verify sync — this should match GitHub's `main` HEAD (`git ls-remote origin main`):
+```bash
+curl -s "https://gitee.com/api/v5/repos/huhetingadday-boop/coding-agent-go/commits/main" | grep -o '"sha":"[a-f0-9]*"' | head -1
+```
 - `@latest` needs at least one tag to exist. The first tag (`v1.0.0`) is what turns the public commands on.
 - Fixed versions (`@v1.0.0`) are immutable and cached for a year — do not use them in the public command, or old posts can never receive a fix.
 - The piped one-liner stays the primary install path; the packaged binaries are the zero-terminal option for non-technical users.

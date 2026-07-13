@@ -2,7 +2,7 @@
   coding-agent-go GUI launcher for Windows PowerShell.
 
   Run it the simple "curl | sh" way (downloads and runs in one shot):
-    irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex
+    irm https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main/install-gui.ps1 | iex
 
   It finds Python (installs it per-user if missing, no admin needed), fetches
   server.py + providers.json from the CDN, then starts the local install UI at
@@ -11,9 +11,12 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Port = 17860
-# Try a few jsDelivr endpoints — cdn. is occasionally throttled in China, but
-# fastly./gcore. usually still resolve. All serve the same @latest tag.
+# Gitee raw (main) first — gitee.com is a China domain the GFW never
+# DNS-pollutes, so it resolves even on the broken/polluted ISP DNS that makes
+# jsDelivr fail. Then jsDelivr as fallback: cdn. is occasionally throttled in
+# China, but fastly./gcore. usually still resolve (those pin the @latest tag).
 $Cdns = @(
+  'https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main',
   'https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest',
   'https://fastly.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest',
   'https://gcore.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'

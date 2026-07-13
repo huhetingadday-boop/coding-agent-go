@@ -15,23 +15,23 @@ One command does it all: it downloads the installer (`server.py` + `providers.js
 ### macOS / Linux / WSL (bash)
 Open a terminal (in WSL use the same command), paste this one line, press Enter:
 ```bash
-bash <(curl -fsSL --connect-timeout 8 https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/install-gui.sh)
+bash <(curl -fsSL https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main/install-gui.sh)
 ```
-If that can't connect, use the jsDelivr fallback (pinned to the latest release):
+If that can't connect, use the ghproxy fallback:
 ```bash
-bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)
+bash <(curl -fsSL --connect-timeout 8 https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/install-gui.sh)
 ```
 ### Windows PowerShell
 Open "PowerShell", paste this one line, press Enter (`irm | iex` is the PowerShell version of `curl | sh`):
 ```powershell
+irm https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main/install-gui.ps1 | iex
+```
+If that can't connect, use the ghproxy fallback:
+```powershell
 irm https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/install-gui.ps1 | iex
 ```
-If that can't connect, use the jsDelivr fallback (pinned to the latest release):
-```powershell
-irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex
-```
 Both commands download `server.py` and `providers.json`, start the local UI server, and open the browser — no clone needed. WSL installs into the WSL Linux environment, so run it in a WSL terminal; to use the native Windows terminal, take the PowerShell path.
-> No Python? No problem: the script installs it automatically (per-user, no UAC prompt). If you prefer cmd/batch on the command line, you can also use: `$f="$env:TEMP\acgg.bat"; iwr https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/install-gui.bat -OutFile $f; cmd /c $f`
+> No Python? No problem: the script installs it automatically (per-user, no UAC prompt). If you prefer cmd/batch on the command line, you can also use: `$f="$env:TEMP\acgg.bat"; iwr https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main/install-gui.bat -OutFile $f; cmd /c $f`
 
 ## After it installs — how to use it
 The installer tells you the next step when it finishes. In short:
@@ -69,7 +69,7 @@ The GUI shows each vendor's API key page and the steps to get one. Sign up, crea
 ## Security & privacy
 - **Your API key only flows between your computer and the LLM vendor** — never to the author or any third party. All config is written only to local files on your machine.
 - **The install scripts are public — read them before you run them.** If `irm | iex` / `curl | sh` makes you uneasy, open the script in your browser first and decide: [install-gui.ps1](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.ps1) (Windows) · [install-gui.sh](https://github.com/huhetingadday-boop/coding-agent-go/blob/main/install-gui.sh) (macOS/Linux/WSL).
-- **The main commands are tuned for China networks; the fallbacks are pinned to a release.** The macOS/Linux and Windows main commands go through ghproxy straight to GitHub, avoiding the SSL errors and throttling jsdelivr occasionally hits in China; they track the `main` branch. To run only tagged releases, use the jsDelivr fallback under each command.
+- **China installs go through the Gitee mirror first, ghproxy as fallback — both track `main`.** `gitee.com` is a China domain that never gets DNS-polluted, so it resolves even on the broken ISP DNS that makes ghproxy/jsdelivr fail to resolve; if it can't connect, use the ghproxy fallback under each command. To run only tagged releases, use jsDelivr `@latest`: macOS/Linux `bash <(curl -fsSL https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.sh)`, Windows `irm https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/install-gui.ps1 | iex`.
 
 ## Trouble?
 - **Where's the terminal?** Windows: search "PowerShell" in Start. Mac: search "Terminal" in Launchpad. Open it, paste the command, Enter.

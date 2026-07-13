@@ -102,9 +102,13 @@ SCRIPTPATH="$(cd "$(dirname "$0")" 2>/dev/null && pwd)" || SCRIPTPATH=""
 if [ -n "$SCRIPTPATH" ] && [ -f "$SCRIPTPATH/server.py" ]; then
   SERVER="$SCRIPTPATH/server.py"
 else
-  # Try a few jsDelivr endpoints — cdn. is occasionally throttled in China, but
-  # fastly./gcore. usually still resolve. All serve the same @latest tag.
-  MIRRORS="https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest \
+  # Gitee raw (main) first — gitee.com is a China domain the GFW never
+  # DNS-pollutes, so it resolves even on the broken/polluted ISP DNS that makes
+  # jsDelivr fail (curl error 6/28). Then jsDelivr as fallback: cdn. is
+  # occasionally throttled in China, but fastly./gcore. usually still resolve
+  # (those pin the @latest tag).
+  MIRRORS="https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main \
+https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest \
 https://fastly.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest \
 https://gcore.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest"
   DEST="$(mktemp -d 2>/dev/null || echo "/tmp/coding-agent-go.$$")"

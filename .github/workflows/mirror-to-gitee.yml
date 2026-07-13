@@ -1,0 +1,42 @@
+name: mirror-to-gitee
+
+# Gitee's URL-imported repo does NOT auto-sync from GitHub — it's a one-time
+# snapshot. This pushes every commit on main (and every version tag) to the
+# Gitee mirror within ~30s of a push, so the China-primary install commands
+# (https://gitee.com/.../raw/main/...) never serve stale scripts.
+#
+# Why Gitee is the primary China channel: gitee.com is a China domain the GFW
+# never DNS-pollutes, so it resolves even on the broken/polluted ISP DNS that
+# makes ghfast.top / cdn.jsdelivr.net fail to resolve (curl error 6/28).
+#
+# ONE-TIME SETUP (until GITEE_TOKEN exists, this workflow just skips, it does
+# not fail the build):
+#   1. Create a Gitee token: https://gitee.com/profile/personal_access_tokens
+#      (scope: projects). Copy it.
+#   2. This repo -> Settings -> Secrets and variables -> Actions ->
+#      New repository secret, name it GITEE_TOKEN, paste the token, save.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags so the mirror is complete
+      - name: Push to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::warning::GITEE_TOKEN secret not set — skipping Gitee sync. See the setup note in this workflow file."
+            exit 0
+          fi
+          # GitHub masks the secret in logs, so the token in the URL is not exposed.
+          remote="https://huhetingadday-boop:${GITEE_TOKEN}@gitee.com/huhetingadday-boop/coding-agent-go.git"
+          git push --force "$remote" HEAD:refs/heads/main
+          git push --force "$remote" --tags

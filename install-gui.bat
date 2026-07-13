@@ -62,7 +62,7 @@ goto :end
 set "APPDIR=%TEMP%\coding-agent-go\"
 if not exist "%APPDIR%" mkdir "%APPDIR%"
 echo Downloading server.py / providers.json ...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $d=Join-Path $env:TEMP 'coding-agent-go'; $bases=@('https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest','https://fastly.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest','https://gcore.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'); function Fetch($n){ foreach($b in $bases){ try{ Invoke-WebRequest ($b+'/'+$n) -OutFile (Join-Path $d $n) -UseBasicParsing -TimeoutSec 60; return }catch{} } throw ('download failed: '+$n) }; Fetch 'server.py'; Fetch 'providers.json'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $d=Join-Path $env:TEMP 'coding-agent-go'; $bases=@('https://gitee.com/huhetingadday-boop/coding-agent-go/raw/main','https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest','https://fastly.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest','https://gcore.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest'); function Fetch($n){ foreach($b in $bases){ try{ Invoke-WebRequest ($b+'/'+$n) -OutFile (Join-Path $d $n) -UseBasicParsing -TimeoutSec 60; return }catch{} } throw ('download failed: '+$n) }; Fetch 'server.py'; Fetch 'providers.json'"
 exit /b
 
 :end
