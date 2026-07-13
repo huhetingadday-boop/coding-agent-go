@@ -32,11 +32,17 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
+          set -o pipefail
           if [ -z "$GITEE_TOKEN" ]; then
-            echo "::warning::GITEE_TOKEN secret not set — skipping Gitee sync. See the setup note in this workflow file."
+            echo "::warning::GITEE_TOKEN not visible to this run (length=${#GITEE_TOKEN}). Needs a repository secret named exactly GITEE_TOKEN under Settings > Secrets and variables > Actions > Secrets. Skipping."
             exit 0
           fi
-          # GitHub masks the secret in logs, so the token in the URL is not exposed.
+          echo "::notice::GITEE_TOKEN present (length=${#GITEE_TOKEN}); pushing to Gitee..."
+          # GitHub masks the secret in logs; also redact it from any error output.
           remote="https://huhetingadday-boop:${GITEE_TOKEN}@gitee.com/huhetingadday-boop/coding-agent-go.git"
-          git push --force "$remote" HEAD:refs/heads/main
-          git push --force "$remote" --tags
+          if ! out=$(git push --force "$remote" HEAD:refs/heads/main 2>&1); then
+            echo "::error::Gitee push failed: $(printf '%s' "$out" | sed "s|${GITEE_TOKEN}|***|g")"
+            exit 1
+          fi
+          git push --force "$remote" --tags 2>&1 | sed "s|${GITEE_TOKEN}|***|g" || true
+          echo "::notice::Gitee sync complete."
