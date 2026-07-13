@@ -236,9 +236,9 @@ footer{margin-top:54px;text-align:center;color:var(--ink3);font-size:12.5px;line
 </div>
 
 <script>
-var BASE="https://cdn.jsdelivr.net/gh/huhetingadday-boop/coding-agent-go@latest/";
+var BASE="https://ghfast.top/https://raw.githubusercontent.com/huhetingadday-boop/coding-agent-go/main/";
 var WIN_CMD="irm "+BASE+"install-gui.ps1 | iex";
-var NIX_CMD="bash <(curl -fsSL "+BASE+"install-gui.sh)";
+var NIX_CMD="bash <(curl -fsSL --connect-timeout 8 "+BASE+"install-gui.sh)";
 
 // Detect the OS once and show ONLY its content — no "switch system" clutter, no
 // other-OS noise for a user who is plainly on one machine.

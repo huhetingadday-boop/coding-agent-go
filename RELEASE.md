@@ -1,10 +1,14 @@
 # Releasing
 
-The public install commands point at jsdelivr `@latest`, which resolves to the
-**newest git tag** — never an untagged `main` commit. So pushing to `main` never
-changes what users install. Only tagging does. This keeps a viral post's command
-stable (the text never changes) while still letting a tagged fix reach everyone
-who runs it.
+The install channels split. The **primary** commands (macOS/Linux, Windows, and
+the download page) go through the `ghfast.top` ghproxy to
+`raw.githubusercontent.com/.../main/`, so they track `main` — a push to `main`
+changes the install script for those users right away, no tag needed. So keep
+`main`'s install scripts working. The **jsdelivr `@latest` fallback**, the app
+files the scripts fetch (`server.py`, `providers.json`), and the double-click
+installers all resolve to the **newest git tag** — pushing to `main` never
+changes those, only tagging does. This keeps a viral post's fallback command
+stable while a tagged fix still reaches everyone who runs it.
 
 ## Cut a new version
 1. Land your changes on `main` and wait for the `tests` workflow to go green. Never tag a red build — `@latest` ships a new tag to every user instantly.
