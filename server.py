@@ -1848,6 +1848,15 @@ NPM_MIRROR = "https://registry.npmmirror.com"
 # NOT enough, because a user whose default registry is already the mirror (a
 # common ~/.npmrc setup in China) would just hit the same mirror again.
 NPM_OFFICIAL = "https://registry.npmjs.org"
+# Aggressive network options for every `npm install`. npm's DEFAULT per-request
+# timeout is 5 minutes (fetch-timeout=300000): on a flaky China link a single
+# stalled tarball request makes npm sit idle for minutes, and our own 300s step
+# ceiling kills the whole install first — so one slow package fails the step.
+# Cap each request at 30s, retry fast with backoff, and raise concurrency so a
+# batch of small tarballs downloads in parallel instead of dragging serially.
+NPM_NET_OPTS = ["--fetch-timeout=30000", "--fetch-retries=4",
+                "--fetch-retry-mintimeout=2000", "--fetch-retry-maxtimeout=15000",
+                "--maxsockets=12"]
 # China-hosted GitHub proxies. They fetch the asset from GitHub server-side, so
 # the user never needs direct github.com access (which we must assume may be
 # blocked). Always tried before any direct github.com URL.
@@ -1880,7 +1889,8 @@ def _npm_global(pkg, sse):
     Use a fresh cache dir so a root-owned ~/.npm (a common npm gotcha after a
     past `sudo npm`) can't block the install with EACCES."""
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
-    base = ["npm", "install", "-g", pkg, "--no-fund", "--no-audit", "--cache", cache]
+    base = ["npm", "install", "-g", pkg, "--no-fund", "--no-audit",
+            "--cache", cache] + NPM_NET_OPTS
     sse(log=_t("  从 npmmirror 镜像安装…", "  Installing from the npmmirror mirror…"), cls="dim")
     try:
         # codex ships a ~115MB+ native binary — slow to pull on a no-VPN link, so
@@ -3063,13 +3073,17 @@ def _install_m2c(sse):
     # CN GitHub proxies (_seed_bs3), the same fast path codex uses.
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
     base = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
-            "--ignore-scripts", "--cache", cache]
+            "--ignore-scripts", "--cache", cache] + NPM_NET_OPTS
     for registry in (NPM_MIRROR, NPM_OFFICIAL):
         if registry == NPM_OFFICIAL:
             sse(log=_t("  这个镜像有点慢，换官方源继续…", "  Mirror is slow — trying the official registry…"), cls="dim")
-        _run(base + ["--registry", registry], check=False, text=True, timeout=300)
+        r = _run(base + ["--registry", registry], check=False, text=True, timeout=300)
         if _bs3_dir():  # JS package landed on disk — no need to try the next registry
             break
+        # Record why npm failed so a stalled request / bad package is diagnosable
+        # (the previous version discarded this, leaving the debug log empty).
+        _dbg(f"m2c npm ({registry}) exit={r.returncode}: "
+             f"{((r.stdout or '') + (r.stderr or ''))[-600:]}")
     d = _bs3_dir()
     if not d:
         raise Exception(_t("mimo2codex 安装失败：镜像与官方源都拉不到 JS 包",
