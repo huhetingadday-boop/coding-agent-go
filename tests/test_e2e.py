@@ -456,7 +456,7 @@ class UnitTest(unittest.TestCase):
         place — WITHOUT relying on npm running the install script (npm 11's
         allow-scripts blocks it) or on parsing npm's log output."""
         sys.path.insert(0, str(PROJECT_DIR))
-        import server, tarfile, io, json as _json
+        import server, tarfile, io, types, json as _json
         captured = {}
 
         def fake_download(url, dest, timeout=60):
@@ -473,8 +473,17 @@ class UnitTest(unittest.TestCase):
         d = Path(tempfile.mkdtemp()) / "better-sqlite3"
         d.mkdir(parents=True)
         (d / "package.json").write_text(_json.dumps({"version": "12.11.1"}))
-        orig = server._download
+        orig_dl = server._download
+        orig_run = server.subprocess.run
         server._download = fake_download
+
+        # Keep the real `node -p` ABI probe, but stub the `require()` load-check —
+        # our fake .node is random bytes and can't actually be loaded.
+        def fake_run(args, **kw):
+            if isinstance(args, (list, tuple)) and "-e" in args:
+                return types.SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+            return orig_run(args, **kw)
+        server.subprocess.run = fake_run
         try:
             ok = server._seed_bs3(lambda **k: None, d)
             self.assertTrue(ok, "seed should place the prebuilt .node")
@@ -485,7 +494,8 @@ class UnitTest(unittest.TestCase):
             self.assertIn("WiseLibs/better-sqlite3/releases/download/v12.11.1", captured["url"])
             self.assertIn("better-sqlite3-v12.11.1-node-v", captured["url"])
         finally:
-            server._download = orig
+            server._download = orig_dl
+            server.subprocess.run = orig_run
 
     @unittest.skipIf(os.name == "nt",
                      "PATH persistence is a macOS/Linux feature (Windows uses the "

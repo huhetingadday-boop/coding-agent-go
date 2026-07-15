@@ -3017,8 +3017,20 @@ def _seed_bs3(sse, d):
                 with tf.extractfile(member) as fsrc, open(target, "wb") as fout:
                     shutil.copyfileobj(fsrc, fout)
             if _bs3_native_ok(d):
-                sse(log=_t("  better-sqlite3 预编译包就绪 ✓", "  better-sqlite3 prebuilt ready ✓"), cls="ok")
-                return True
+                # Confirm it actually LOADS (ABI/arch match), not just that the
+                # file exists — a mismatched prebuilt would crash at runtime.
+                chk = subprocess.run([node, "-e", "require(process.argv[1])", str(d)],
+                                     capture_output=True, timeout=25,
+                                     creationflags=_NO_WINDOW)
+                if chk.returncode == 0:
+                    sse(log=_t("  better-sqlite3 预编译包就绪 ✓", "  better-sqlite3 prebuilt ready ✓"), cls="ok")
+                    return True
+                _dbg(f"bs3 seeded but require() failed: "
+                     f"{(chk.stderr or b'').decode('utf-8', 'replace')[:200]}")
+                try:
+                    target.unlink()  # drop the bad binary so a retry can replace it
+                except OSError:
+                    pass
         except Exception as e:
             _dbg(f"bs3 seed via {hlabel} failed: {e}")
     return False
@@ -3037,32 +3049,31 @@ def _install_m2c(sse):
         sse(log=_t("  已检测到 mimo2codex，跳过安装", "  mimo2codex already present, skipping"), cls="dim")
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
-    # mimo2codex depends on better-sqlite3 (native). Its prebuilt is pulled from
-    # GitHub releases — blocked behind the GFW — and npm 11 no longer runs the
-    # install script by default, so the .node binary is routinely absent even
-    # when `npm install` "succeeds". So: install the JS, then ALWAYS ensure the
-    # native binary ourselves via the CN GitHub proxies (same path as codex).
-    # A nonzero npm exit is often ONLY the native build failing while the package
-    # dir is fully on disk — recoverable by seeding — so we don't treat it as
-    # fatal until the package itself is missing.
+    # --ignore-scripts is the crux. mimo2codex depends on better-sqlite3
+    # (native), whose install script (prebuild-install) pulls a prebuilt from
+    # GitHub releases — blocked behind the GFW. Left to run, it hangs ~150s, then
+    # fails the whole `npm install`, and npm ROLLS BACK — wiping the package dir
+    # before we can seed the binary. Skipping scripts installs the JS in ~2s (no
+    # GitHub contact at all); we then place the native .node ourselves from the
+    # CN GitHub proxies (_seed_bs3), the same fast path codex uses.
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
     base = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
-            "--cache", cache, "--foreground-scripts"]
+            "--ignore-scripts", "--cache", cache]
     for registry in (NPM_MIRROR, NPM_OFFICIAL):
         if registry == NPM_OFFICIAL:
             sse(log=_t("  这个镜像有点慢，换官方源继续…", "  Mirror is slow — trying the official registry…"), cls="dim")
         _run(base + ["--registry", registry], check=False, text=True, timeout=300)
-        d = _bs3_dir()
-        if d:  # mimo2codex + better-sqlite3 landed on disk
-            if _bs3_native_ok(d) or _seed_bs3(sse, d):
-                _refresh_windows_path()
-                return
-            # package on disk but we couldn't get the prebuilt from any proxy —
-            # switching npm registries won't help (same GitHub-blocked prebuilt).
+        if _bs3_dir():  # JS package landed on disk — no need to try the next registry
             break
-        # else: the JS package itself didn't download — try the next registry.
-    raise Exception(_t("mimo2codex 安装失败：镜像与官方源都不通，或 better-sqlite3 预编译包获取失败（见调试日志）",
-                       "mimo2codex install failed: mirror and official registry both unreachable, or the better-sqlite3 prebuilt couldn't be fetched (see debug log)"))
+    d = _bs3_dir()
+    if not d:
+        raise Exception(_t("mimo2codex 安装失败：镜像与官方源都拉不到 JS 包",
+                           "mimo2codex install failed: couldn't fetch the JS package from either registry"))
+    if _bs3_native_ok(d) or _seed_bs3(sse, d):
+        _refresh_windows_path()
+        return
+    raise Exception(_t("mimo2codex 的 better-sqlite3 预编译包获取失败（所有 GitHub 代理都不通，见调试日志）",
+                       "mimo2codex's better-sqlite3 prebuilt couldn't be fetched (all GitHub proxies failed; see debug log)"))
 
 
 def _mimo2codex_script():
