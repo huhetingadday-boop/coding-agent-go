@@ -2787,6 +2787,107 @@ def _install_node(sse, min_major=0):
                 _run(["sudo", "pacman", "-Sy", "--noconfirm", "nodejs", "npm"], timeout=120)
 
 
+def _codex_triple():
+    """Rust target triple for codex's standalone GitHub-release binary. Built
+    deterministically from OS + arch so we never have to call api.github.com
+    (often blocked in mainland China). Linux uses the static musl build so it
+    isn't coupled to the host's glibc version."""
+    arm = platform.machine().lower() in ("arm64", "aarch64")
+    if IS_MAC:
+        return "aarch64-apple-darwin" if arm else "x86_64-apple-darwin"
+    if IS_WIN:
+        return "aarch64-pc-windows-msvc" if arm else "x86_64-pc-windows-msvc"
+    return "aarch64-unknown-linux-musl" if arm else "x86_64-unknown-linux-musl"
+
+
+def _codex_latest_version():
+    """Latest codex version (e.g. '0.144.4') from the npm mirror — China-
+    reachable without a VPN, unlike the GitHub API. The matching GitHub release
+    tag is `rust-v<version>`. Falls back to the official npm registry."""
+    import urllib.request as _ur
+    for reg in (NPM_MIRROR, NPM_OFFICIAL):
+        try:
+            req = _ur.Request(reg + "/@openai/codex/latest",
+                              headers={"User-Agent": "coding-agent-go"})
+            with _ur.urlopen(req, timeout=20) as r:
+                v = json.loads(r.read().decode("utf-8")).get("version", "")
+            if v:
+                return v.strip()
+        except Exception:
+            continue
+    return None
+
+
+def _codex_works():
+    """True if a `codex` on PATH actually launches. npm can exit 0 while codex's
+    optional ~120MB platform package silently failed to download, leaving a shim
+    that can't run — a success we must not trust. `--version` is side-effect-free
+    (no TTY prompt), unlike a real codex invocation."""
+    exe = shutil.which("codex")
+    if not exe:
+        return False
+    try:
+        return subprocess.run([exe, "--version"], capture_output=True,
+                              timeout=30).returncode == 0
+    except Exception:
+        return False
+
+
+def _install_codex_from_github(sse):
+    """China-reachable fallback for codex's ~120MB binary: fetch the standalone
+    executable straight from the GitHub release through CN GitHub proxies
+    (ghfast.top etc. — reachable without a VPN) and drop it on PATH. This is what
+    chatgpt.com/codex/install.sh does, but via a host that actually resolves in
+    mainland China instead of the DNS-poisoned chatgpt.com. Mirror-first: the CN
+    proxies are tried before direct github.com. macOS/Linux only — Windows keeps
+    the npm/winget path (no custom-PATH persistence needed there)."""
+    ver = _codex_latest_version()
+    if not ver:
+        raise Exception(_t("拿不到 Codex 最新版本", "Can't resolve the latest Codex version"))
+    asset = f"codex-{_codex_triple()}.tar.gz"
+    base = (f"https://github.com/openai/codex/releases/download/rust-v{ver}/{asset}")
+    sse(log=_t(f"  从 GitHub 直连下载 Codex {ver} 二进制（走国内代理，约 100MB）…",
+               f"  Downloading the Codex {ver} binary from GitHub (via a China proxy, ~100MB)…"),
+        cls="dim")
+    tgz = Path(tempfile.gettempdir()) / asset
+    dl_ok = False
+    for u in tuple(p + base for p in GH_PROXIES) + (base,):
+        host = u.split("//", 1)[-1].split("/", 1)[0]
+        try:
+            sse(log=_t(f"  从 {host} 下载…", f"  Downloading from {host}…"), cls="dim")
+            _download(u, tgz, timeout=SLOW_DOWNLOAD_TIMEOUT)
+            if tgz.exists() and tgz.stat().st_size > 1_000_000:
+                dl_ok = True
+                break
+        except Exception as e:
+            _dbg(f"codex gh download via {host} failed: {e}")
+            sse(log=_t(f"    {host} 这个源有点慢，换下一个…",
+                       f"    {host} is slow — trying the next mirror…"), cls="dim")
+    if not dl_ok:
+        raise Exception(_t("Codex 二进制多个 GitHub 代理都下载失败",
+                           "Codex binary download failed across all GitHub proxies"))
+    # The tarball holds one executable (named for the triple). Extract it, rename
+    # to `codex`, install to ~/.coding-agent-go/bin, and persist that on PATH.
+    import tarfile
+    bindir = Path.home() / ".coding-agent-go" / "bin"
+    bindir.mkdir(parents=True, exist_ok=True)
+    exe = bindir / "codex"
+    with tarfile.open(tgz) as tf:
+        member = next((m for m in tf.getmembers() if m.isfile()), None)
+        if member is None:
+            raise Exception(_t("Codex 压缩包异常：没有可执行文件",
+                               "Codex archive is empty (no executable)"))
+        src = tf.extractfile(member)
+        with open(exe, "wb") as out:
+            shutil.copyfileobj(src, out)
+    os.chmod(exe, 0o755)
+    _persist_unix_path(bindir, sse)
+    if not _codex_works():
+        raise Exception(_t("Codex 二进制装好但无法运行",
+                           "Codex binary installed but won't run"))
+    sse(log=_t("  Codex 二进制就绪 ✓", "  Codex binary ready ✓"), cls="ok")
+
+
 def _install_codex(sse):
     if _skip_for_test(sse, "装 Codex CLI"):
         return
@@ -2807,11 +2908,28 @@ def _install_codex(sse):
                "  Codex is large (~100MB+ binary); the download can take a minute or two, please wait…"), cls="dim")
     try:
         _npm_global("@openai/codex", sse)
-        return
+        if _codex_works():
+            return
+        # npm exited 0 but the optional ~120MB platform binary didn't land, so
+        # `codex` can't actually run. Don't report success — fall through to the
+        # standalone GitHub-release binary below.
+        sse(log=_t("  npm 装好了但二进制没到位，改从 GitHub 直连补齐…",
+                   "  npm succeeded but the binary is missing — fetching it from GitHub…"), cls="dim")
     except Exception:
         pass
-    sse(log=_t("镜像装不上，改用官方安装器兜底…",
-               "Mirror failed — falling back to the official installer…"), cls="dim")
+    # China-reachable fallback FIRST: the standalone binary from the GitHub
+    # release via CN proxies. This runs before the official chatgpt.com installer
+    # because chatgpt.com is DNS-poisoned in mainland China (a near-useless last
+    # resort there) — keeping the "免翻墙 / no VPN" promise.
+    sse(log=_t("镜像装不上，改从 GitHub 直连二进制兜底…",
+               "Mirror failed — falling back to the standalone GitHub binary…"), cls="dim")
+    try:
+        _install_codex_from_github(sse)
+        return
+    except Exception as e:
+        _dbg(f"codex github-binary fallback failed: {e}")
+    # Last resort: the official installer (needs chatgpt.com, usually blocked in CN).
+    sse(log=_t("再试官方安装器…", "Trying the official installer…"), cls="dim")
     try:
         p = subprocess.run(
             ["curl", "-fsSL", "--connect-timeout", "8",
