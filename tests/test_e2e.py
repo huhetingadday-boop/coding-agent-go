@@ -449,32 +449,41 @@ class UnitTest(unittest.TestCase):
         self.assertIn("余额", server._friendly_upstream_error(200, "insufficient balance"))
         self.assertIn("API Key", server._friendly_upstream_error(401, ""))
 
-    def test_better_sqlite3_seed_all_platforms(self):
-        """The better-sqlite3 prebuilt seed must work on darwin/linux/win and
-        fetch via a CN GitHub proxy first (the user may have no GitHub access)."""
+    @unittest.skipIf(not shutil.which("node"), "needs node to read the ABI")
+    def test_better_sqlite3_seed_active(self):
+        """The better-sqlite3 prebuilt seed must fetch via a CN GitHub proxy
+        first (the user may have no GitHub access) and unpack the .node into
+        place — WITHOUT relying on npm running the install script (npm 11's
+        allow-scripts blocks it) or on parsing npm's log output."""
         sys.path.insert(0, str(PROJECT_DIR))
-        import server
+        import server, tarfile, io, json as _json
         captured = {}
 
         def fake_download(url, dest, timeout=60):
             captured["url"] = url
             Path(dest).parent.mkdir(parents=True, exist_ok=True)
-            Path(dest).write_bytes(b"x" * 2000)  # > 1000 bytes => "placed"
+            # A real .tar.gz carrying build/Release/better_sqlite3.node, so the
+            # seed's extract-only-the-.node-member path is exercised for real.
+            with tarfile.open(dest, "w:gz") as tf:
+                data = os.urandom(5000)  # incompressible → gz stays > 1000 bytes
+                ti = tarfile.TarInfo("build/Release/better_sqlite3.node")
+                ti.size = len(data)
+                tf.addfile(ti, io.BytesIO(data))
 
+        d = Path(tempfile.mkdtemp()) / "better-sqlite3"
+        d.mkdir(parents=True)
+        (d / "package.json").write_text(_json.dumps({"version": "12.11.1"}))
         orig = server._download
         server._download = fake_download
         try:
-            for asset in ("a1-better-sqlite3-v12.11.1-node-v137-darwin-arm64.tar.gz",
-                          "b2-better-sqlite3-v12.11.1-node-v127-linux-x64.tar.gz",
-                          "c3-better-sqlite3-v12.11.1-node-v137-win32-x64.tar.gz"):
-                captured.clear()
-                log = f"prebuild-install warn install looking for cached prebuild @ /tmp/c/_prebuilds/{asset}"
-                ok = server._seed_better_sqlite3_prebuild(lambda **k: None, log)
-                self.assertTrue(ok, f"seed should place a prebuilt for {asset}")
-                self.assertTrue(captured["url"].startswith(server.GH_PROXIES[0]),
-                                f"must try a CN proxy first, got {captured['url']}")
-                self.assertIn("WiseLibs/better-sqlite3/releases/download/v12.11.1", captured["url"])
-                self.assertTrue(captured["url"].endswith(asset.split("-", 1)[1]), captured["url"])
+            ok = server._seed_bs3(lambda **k: None, d)
+            self.assertTrue(ok, "seed should place the prebuilt .node")
+            self.assertTrue((d / "build" / "Release" / "better_sqlite3.node").exists(),
+                            "the native binary must be unpacked into build/Release")
+            self.assertTrue(captured["url"].startswith(server.GH_PROXIES[0]),
+                            f"must try a CN proxy first, got {captured['url']}")
+            self.assertIn("WiseLibs/better-sqlite3/releases/download/v12.11.1", captured["url"])
+            self.assertIn("better-sqlite3-v12.11.1-node-v", captured["url"])
         finally:
             server._download = orig
 

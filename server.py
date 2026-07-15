@@ -2891,7 +2891,11 @@ def _install_codex_from_github(sse):
 def _install_codex(sse):
     if _skip_for_test(sse, "装 Codex CLI"):
         return
-    if _has_our("codex", "@openai/codex"):
+    # Already-installed check: `_has_our` only recognizes an npm-managed codex,
+    # so ALSO accept a working standalone binary (our GitHub-binary path installs
+    # to ~/.coding-agent-go/bin, which npm knows nothing about) — otherwise we'd
+    # needlessly re-download 100MB every run.
+    if _has_our("codex", "@openai/codex") or _codex_works():
         sse(log=_t("  已检测到 Codex CLI，跳过安装", "  Codex CLI already present, skipping"), cls="dim")
         return
     sse(log="装 Codex CLI…", cls="dim")
@@ -2899,35 +2903,34 @@ def _install_codex(sse):
         _npm_global("@openai/codex", sse)
         _refresh_windows_path()  # so `codex` lands on PATH for a fresh shell
         return
-    # macOS/Linux: mirror first — npm via npmmirror (fast, no VPN). Node is
-    # already installed by the plan step before this one. Only if the mirror
-    # fails do we fall back to the official chatgpt.com installer, which pulls
-    # the ~100MB+ binary from GitHub releases — slow/blocked in mainland China,
-    # so it's the last resort, not the first try.
+    # macOS/Linux: GitHub-release binary FIRST. Measured in the field, npm can't
+    # reliably pull codex's ~120MB platform package over a no-VPN link — it stalls
+    # ~156s then errors on a reset connection, and the official npm registry is
+    # even worse in China — so two npm attempts routinely burn ~5 min before
+    # succeeding on the standalone binary anyway. The GitHub single-file binary
+    # (via CN proxies like ghfast.top) is fast and reliable and IS the official
+    # install method (chatgpt.com/codex/install.sh does the same), so lead with
+    # it. npm is the fallback for the rare case every GitHub proxy is down.
     sse(log=_t("  Codex 体积较大（约 100MB+ 二进制），下载要一两分钟，请耐心等待…",
                "  Codex is large (~100MB+ binary); the download can take a minute or two, please wait…"), cls="dim")
-    try:
-        _npm_global("@openai/codex", sse)
-        if _codex_works():
-            return
-        # npm exited 0 but the optional ~120MB platform binary didn't land, so
-        # `codex` can't actually run. Don't report success — fall through to the
-        # standalone GitHub-release binary below.
-        sse(log=_t("  npm 装好了但二进制没到位，改从 GitHub 直连补齐…",
-                   "  npm succeeded but the binary is missing — fetching it from GitHub…"), cls="dim")
-    except Exception:
-        pass
-    # China-reachable fallback FIRST: the standalone binary from the GitHub
-    # release via CN proxies. This runs before the official chatgpt.com installer
-    # because chatgpt.com is DNS-poisoned in mainland China (a near-useless last
-    # resort there) — keeping the "免翻墙 / no VPN" promise.
-    sse(log=_t("镜像装不上，改从 GitHub 直连二进制兜底…",
-               "Mirror failed — falling back to the standalone GitHub binary…"), cls="dim")
     try:
         _install_codex_from_github(sse)
         return
     except Exception as e:
-        _dbg(f"codex github-binary fallback failed: {e}")
+        _dbg(f"codex github-binary primary failed: {e}")
+    # Fallback: npm (mirror → official). Reaches here only if every CN GitHub
+    # proxy AND direct github.com failed — rare, but npm's registry is a
+    # genuinely different host, so it's worth the try before giving up.
+    sse(log=_t("GitHub 直连不通，改用 npm 镜像兜底…",
+               "GitHub unreachable — falling back to the npm mirror…"), cls="dim")
+    try:
+        _npm_global("@openai/codex", sse)
+        if _codex_works():
+            return
+        sse(log=_t("  npm 装好了但二进制没到位…",
+                   "  npm succeeded but the binary is missing…"), cls="dim")
+    except Exception:
+        pass
     # Last resort: the official installer (needs chatgpt.com, usually blocked in CN).
     sse(log=_t("再试官方安装器…", "Trying the official installer…"), cls="dim")
     try:
@@ -2946,43 +2949,78 @@ def _install_codex(sse):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Codex → mimo2codex proxy steps
 # ═══════════════════════════════════════════════════════════════════════════════
-def _seed_better_sqlite3_prebuild(sse, log_text):
-    """mimo2codex depends on better-sqlite3 (native). Its prebuilt binary is
-    downloaded from GitHub releases, which is slow or fully blocked behind the
-    GFW, and without a compiler there's no source-build fallback — so the
-    install fails. prebuild-install logs the exact cache path it wants ("cached
-    prebuild @ ...<asset>.tar.gz"); parse it from the failed run, fill that file
-    from a China GitHub proxy (works even with zero direct GitHub access), and
-    the retry uses the cached binary. Returns True if a prebuilt was placed.
-    Best-effort, all platforms (win32 / darwin / linux, x64 / arm64)."""
-    m = re.search(
-        r"cached prebuild @ (.+?better-sqlite3-v[\d.]+-node-v\d+-[a-z0-9]+-[a-z0-9]+\.tar\.gz)",
-        log_text)
-    if not m:
-        _dbg("seed: no prebuild cache path in npm output")
-        return False
-    cache_path = Path(m.group(1).strip().strip('"'))
-    asset = cache_path.name.split("-", 1)[1] if "-" in cache_path.name else cache_path.name
-    vm = re.search(r"better-sqlite3-v([\d.]+)-node", asset)
-    if not vm:
-        return False
-    gh = (f"https://github.com/WiseLibs/better-sqlite3/releases/download/"
-          f"v{vm.group(1)}/{asset}")
+def _bs3_dir():
+    """Locate the installed better-sqlite3 package dir. npm may nest it under
+    mimo2codex or hoist it to the global root, so check both."""
     try:
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run(_win_cmd(["npm", "root", "-g"]), capture_output=True,
+                           text=True, timeout=20, encoding="utf-8",
+                           errors="replace", creationflags=_NO_WINDOW)
     except Exception:
+        return None
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    root = Path(r.stdout.strip())
+    for c in (root / "mimo2codex" / "node_modules" / "better-sqlite3",
+              root / "better-sqlite3"):
+        if c.exists():
+            return c
+    return None
+
+
+def _bs3_native_ok(d):
+    return bool(d) and (d / "build" / "Release" / "better_sqlite3.node").exists()
+
+
+def _seed_bs3(sse, d):
+    """Place better-sqlite3's prebuilt native binary the same way we install
+    codex: fetch it straight from the GitHub release through CN proxies
+    (ghfast.top etc.) and unpack it into place. Does NOT rely on npm running the
+    package's install script — npm 11's allow-scripts blocks it by default — nor
+    on parsing npm's log output (fragile across prebuild-install versions). The
+    asset name is built deterministically from the installed version + this
+    machine's Node ABI / platform / arch. All platforms. Returns True on success."""
+    node = shutil.which("node") or "node"
+    try:
+        ver = json.loads((d / "package.json").read_text(encoding="utf-8"))["version"]
+        info = subprocess.run(
+            [node, "-p", "process.versions.modules+' '+process.platform+' '+process.arch"],
+            capture_output=True, text=True, timeout=15,
+            creationflags=_NO_WINDOW).stdout.split()
+        abi, plat, arch = info[0], info[1], info[2]
+    except Exception as e:
+        _dbg(f"bs3 seed: can't read version/abi: {e}")
         return False
+    asset = f"better-sqlite3-v{ver}-node-v{abi}-{plat}-{arch}.tar.gz"
+    gh = (f"https://github.com/WiseLibs/better-sqlite3/releases/download/"
+          f"v{ver}/{asset}")
+    tgz = Path(tempfile.gettempdir()) / asset
+    target = d / "build" / "Release" / "better_sqlite3.node"
     # CN proxies first; direct github.com last (it may be blocked entirely).
     for host in GH_PROXIES + ("",):
+        hlabel = host.split("//", 1)[-1].split("/", 1)[0] if host else "github.com"
         try:
-            sse(log=_t("  预取 better-sqlite3 预编译包（避免编译/超时）…",
-                       "  Prefetching the better-sqlite3 prebuilt (avoids a slow build)…"), cls="dim")
-            _download(host + gh, cache_path, timeout=120)
-            if cache_path.exists() and cache_path.stat().st_size > 1000:
-                sse(log=_t("  better-sqlite3 预编译包就绪", "  better-sqlite3 prebuilt ready"), cls="ok")
+            sse(log=_t(f"  从 {hlabel} 预取 better-sqlite3 预编译包（约 1MB）…",
+                       f"  Prefetching the better-sqlite3 prebuilt from {hlabel} (~1MB)…"), cls="dim")
+            _download(host + gh, tgz, timeout=120)
+            if not (tgz.exists() and tgz.stat().st_size > 1000):
+                continue
+            # Extract ONLY the .node member to our target path (never trust the
+            # archive's paths — avoids a tar-slip write outside the package dir).
+            import tarfile
+            with tarfile.open(tgz) as tf:
+                member = next((m for m in tf.getmembers()
+                               if m.isfile() and m.name.endswith("better_sqlite3.node")), None)
+                if member is None:
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with tf.extractfile(member) as fsrc, open(target, "wb") as fout:
+                    shutil.copyfileobj(fsrc, fout)
+            if _bs3_native_ok(d):
+                sse(log=_t("  better-sqlite3 预编译包就绪 ✓", "  better-sqlite3 prebuilt ready ✓"), cls="ok")
                 return True
         except Exception as e:
-            _dbg(f"seed download via {host or 'direct'} failed: {e}")
+            _dbg(f"bs3 seed via {hlabel} failed: {e}")
     return False
 
 
@@ -2990,32 +3028,39 @@ def _install_m2c(sse):
     if _skip_for_test(sse, "安装 mimo2codex"):
         return
     if _npm_has("mimo2codex"):
+        # JS present, but the native binary may be missing (npm 11 allow-scripts,
+        # or a past no-VPN install where prebuild-install couldn't reach GitHub).
+        # Repair it before declaring OK, else mimo2codex crashes at runtime.
+        d = _bs3_dir()
+        if d and not _bs3_native_ok(d):
+            _seed_bs3(sse, d)
         sse(log=_t("  已检测到 mimo2codex，跳过安装", "  mimo2codex already present, skipping"), cls="dim")
         return
     sse(log="npm install -g mimo2codex…", cls="dim")
-    # better-sqlite3's prebuilt is pulled from GitHub releases — slow or blocked
-    # behind the GFW. Capture each attempt; if the prebuilt can't be fetched,
-    # pre-seed it from a CN GitHub proxy (see _seed_…) and retry once. Same on
-    # every OS — we assume the user may have no GitHub access at all. If the
-    # mirror registry itself is unreachable (e.g. a broken proxy giving connect
-    # EBADF), fall back to the official registry — a genuinely different host,
-    # unlike dropping --registry (a CN user's default is often the mirror again).
+    # mimo2codex depends on better-sqlite3 (native). Its prebuilt is pulled from
+    # GitHub releases — blocked behind the GFW — and npm 11 no longer runs the
+    # install script by default, so the .node binary is routinely absent even
+    # when `npm install` "succeeds". So: install the JS, then ALWAYS ensure the
+    # native binary ourselves via the CN GitHub proxies (same path as codex).
+    # A nonzero npm exit is often ONLY the native build failing while the package
+    # dir is fully on disk — recoverable by seeding — so we don't treat it as
+    # fatal until the package itself is missing.
     cache = str(Path(tempfile.gettempdir()) / "coding-agent-go-npm-cache")
     base = ["npm", "install", "-g", "mimo2codex", "--no-fund", "--no-audit",
             "--cache", cache, "--foreground-scripts"]
     for registry in (NPM_MIRROR, NPM_OFFICIAL):
         if registry == NPM_OFFICIAL:
-            sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
-        cmd = base + ["--registry", registry]
-        r = _run(cmd, check=False, text=True, timeout=300)
-        if r.returncode == 0:
-            _refresh_windows_path()
-            return
-        out = (r.stdout or "") + (r.stderr or "")
-        if _seed_better_sqlite3_prebuild(sse, out):
-            _run(cmd, timeout=300)
-            _refresh_windows_path()
-            return
+            sse(log=_t("  这个镜像有点慢，换官方源继续…", "  Mirror is slow — trying the official registry…"), cls="dim")
+        _run(base + ["--registry", registry], check=False, text=True, timeout=300)
+        d = _bs3_dir()
+        if d:  # mimo2codex + better-sqlite3 landed on disk
+            if _bs3_native_ok(d) or _seed_bs3(sse, d):
+                _refresh_windows_path()
+                return
+            # package on disk but we couldn't get the prebuilt from any proxy —
+            # switching npm registries won't help (same GitHub-blocked prebuilt).
+            break
+        # else: the JS package itself didn't download — try the next registry.
     raise Exception(_t("mimo2codex 安装失败：镜像与官方源都不通，或 better-sqlite3 预编译包获取失败（见调试日志）",
                        "mimo2codex install failed: mirror and official registry both unreachable, or the better-sqlite3 prebuilt couldn't be fetched (see debug log)"))
 
