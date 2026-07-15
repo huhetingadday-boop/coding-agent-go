@@ -3048,7 +3048,12 @@ def _install_m2c(sse):
             _seed_bs3(sse, d)
         sse(log=_t("  已检测到 mimo2codex，跳过安装", "  mimo2codex already present, skipping"), cls="dim")
         return
-    sse(log="npm install -g mimo2codex…", cls="dim")
+    # mimo2codex is a pure-npm package (its JS + deps live on npm, not GitHub),
+    # so this JS step can only go through npm — npmmirror is the fastest China
+    # source for it (~4s). It's the better-sqlite3 NATIVE binary that comes from
+    # GitHub, and that part goes through the ghfast proxy in _seed_bs3 below.
+    sse(log=_t("  装 mimo2codex 的 JS 部分（走 npmmirror，通常几秒）…",
+               "  Installing mimo2codex's JS (via npmmirror, usually a few seconds)…"), cls="dim")
     # --ignore-scripts is the crux. mimo2codex depends on better-sqlite3
     # (native), whose install script (prebuild-install) pulls a prebuilt from
     # GitHub releases — blocked behind the GFW. Left to run, it hangs ~150s, then
@@ -3069,6 +3074,8 @@ def _install_m2c(sse):
     if not d:
         raise Exception(_t("mimo2codex 安装失败：镜像与官方源都拉不到 JS 包",
                            "mimo2codex install failed: couldn't fetch the JS package from either registry"))
+    sse(log=_t("  JS 就绪 ✓（下面从 ghfast 补 better-sqlite3 原生库）",
+               "  JS ready ✓ (next: the better-sqlite3 native binary via ghfast)"), cls="ok")
     if _bs3_native_ok(d) or _seed_bs3(sse, d):
         _refresh_windows_path()
         return
