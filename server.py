@@ -1853,6 +1853,14 @@ NPM_OFFICIAL = "https://registry.npmjs.org"
 # blocked). Always tried before any direct github.com URL.
 GH_PROXIES = ("https://ghfast.top/", "https://gh-proxy.com/", "https://ghproxy.net/")
 
+# Timeout ceiling (seconds) for large binary downloads on a slow link: codex's
+# ~115MB platform package, Node.js LTS, the GitHub-hosted codex/claude installers.
+# Sized for a genuinely slow network (~115MB at ~190KB/s ≈ 600s) so a
+# slow-but-working download isn't killed mid-flight. A truly unreachable source
+# errors out fast (connection refused / DNS), so this high ceiling only extends
+# the wait for downloads that are actually making progress.
+SLOW_DOWNLOAD_TIMEOUT = 600
+
 
 def _brew_env():
     """Homebrew env with USTC mirrors so `brew install` works without a VPN."""
@@ -1875,14 +1883,13 @@ def _npm_global(pkg, sse):
     base = ["npm", "install", "-g", pkg, "--no-fund", "--no-audit", "--cache", cache]
     sse(log=_t("  从 npmmirror 镜像安装…", "  Installing from the npmmirror mirror…"), cls="dim")
     try:
-        # 300s (not 180): some CLIs ship a large native binary — codex alone is a
-        # ~115MB+ platform package — which is slow to pull on a no-VPN link. Give
-        # the good China source room to finish before the slower official fallback.
-        _run(base + ["--registry", NPM_MIRROR], timeout=300)
+        # codex ships a ~115MB+ native binary — slow to pull on a no-VPN link, so
+        # give both the mirror and the official fallback a slow-network ceiling.
+        _run(base + ["--registry", NPM_MIRROR], timeout=SLOW_DOWNLOAD_TIMEOUT)
         return
     except Exception:
         sse(log="  这个镜像有点慢，换官方源继续…", cls="dim")
-        _run(base + ["--registry", NPM_OFFICIAL], timeout=180)
+        _run(base + ["--registry", NPM_OFFICIAL], timeout=SLOW_DOWNLOAD_TIMEOUT)
 
 
 def _gh_authed():
@@ -2264,7 +2271,7 @@ def _install_claude(sse):
             ["curl", "-fsSL", "--connect-timeout", "8",
              "https://claude.ai/install.sh"], capture_output=True, timeout=15)
         if p.returncode == 0:
-            _run(["bash"], input=p.stdout, timeout=120)
+            _run(["bash"], input=p.stdout, timeout=SLOW_DOWNLOAD_TIMEOUT)
             return
     except Exception:
         pass
@@ -2619,7 +2626,7 @@ def _install_node_tarball_mac(sse, min_major=0):
         host = u.split("//", 1)[-1].split("/", 1)[0]
         try:
             sse(log=_t(f"  从 {host} 下载…", f"  Downloading from {host}…"), cls="dim")
-            _download(u, tpath, timeout=180)
+            _download(u, tpath, timeout=SLOW_DOWNLOAD_TIMEOUT)
             dl_ok = True
             break
         except Exception:
@@ -2723,7 +2730,7 @@ def _install_node(sse, min_major=0):
             host = u.split("//", 1)[-1].split("/", 1)[0]
             try:
                 sse(log=_t(f"  从 {host} 下载…", f"  Downloading from {host}…"), cls="dim")
-                _download(u, zpath, timeout=180)
+                _download(u, zpath, timeout=SLOW_DOWNLOAD_TIMEOUT)
                 dl_ok = True
                 break
             except Exception as e:
@@ -2810,7 +2817,7 @@ def _install_codex(sse):
             ["curl", "-fsSL", "--connect-timeout", "8",
              "https://chatgpt.com/codex/install.sh"], capture_output=True, timeout=15)
         if p.returncode == 0:
-            _run(["bash"], input=p.stdout, timeout=120)
+            _run(["bash"], input=p.stdout, timeout=SLOW_DOWNLOAD_TIMEOUT)
             return
     except Exception:
         pass
