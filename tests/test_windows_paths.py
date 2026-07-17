@@ -45,28 +45,11 @@ class WindowsPathTest(unittest.TestCase):
         self.assertIn(str(server.PROXY_PORT), argv)
 
     def test_win_autostart_xml_is_valid(self):
-        """_win_autostart must emit well-formed Task Scheduler XML with a
-        node Command and an Arguments element — not a bare shim Command."""
-        captured = {}
-
-        def fake_write(self_path, content, **kw):  # patch Path.write_text
-            captured["xml"] = content
-
-        orig = Path.write_text
-        Path.write_text = fake_write
-        try:
-            # subprocess.run(schtasks) will no-op/raise on mac; that's fine,
-            # we only care about the generated XML.
-            try:
-                server._win_autostart(lambda **k: None, self._glm())
-            except Exception:
-                pass
-        finally:
-            Path.write_text = orig
-
-        xml = captured.get("xml", "")
-        self.assertTrue(xml, "no XML written")
-        # Must parse as valid XML.
+        """The Task Scheduler XML must be well-formed with a node Command and an
+        Arguments element — not a bare shim Command."""
+        xml = server._win_task_xml(
+            r"C:\Program Files\nodejs\node.exe",
+            r"C:\x\cli.js --model cag-glm -p 17878 --no-admin --no-update-check")
         doc = minidom.parseString(xml)
         cmd = doc.getElementsByTagName("Command")
         args = doc.getElementsByTagName("Arguments")
@@ -79,23 +62,8 @@ class WindowsPathTest(unittest.TestCase):
     def test_win_autostart_is_keep_alive(self):
         """The autostart task must keep the proxy running like mac KeepAlive /
         linux Restart=always: restart node on death, no 72h execution cap, and
-        run even on battery. Locks in the symptom-2 fix."""
-        captured = {}
-
-        def fake_write(self_path, content, **kw):
-            captured["xml"] = content
-
-        orig = Path.write_text
-        Path.write_text = fake_write
-        try:
-            try:
-                server._win_autostart(lambda **k: None, self._glm())
-            except Exception:
-                pass
-        finally:
-            Path.write_text = orig
-
-        doc = minidom.parseString(captured.get("xml", ""))
+        run even on battery."""
+        doc = minidom.parseString(server._win_task_xml("node.exe", "--model cag-glm"))
 
         def _text(tag):
             els = doc.getElementsByTagName(tag)
@@ -110,10 +78,21 @@ class WindowsPathTest(unittest.TestCase):
         self.assertEqual(_text("DisallowStartIfOnBatteries").lower(), "false")
         self.assertEqual(_text("StopIfGoingOnBatteries").lower(), "false")
 
-    def test_win_stop_autostart_ends_then_deletes(self):
-        """Reinstall must stop the OLD keep-alive task before reclaiming the
-        port, else its RestartOnFailure respawns node under the fresh proxy.
-        Assert we /End then /Delete the exact task _win_autostart creates."""
+    def test_win_supervisor_vbs_is_keep_alive_loop(self):
+        """The no-elevation Run-key fallback's supervisor must relaunch node
+        hidden in an infinite loop — keep-alive without admin."""
+        vbs = server._win_supervisor_vbs(self._glm())
+        self.assertIn("node", vbs.lower())
+        self.assertIn("--model cag-glm", vbs)
+        self.assertIn("sh.Run", vbs)
+        self.assertIn(", 0, True", vbs)        # 0 = hidden window, True = wait
+        self.assertIn("WScript.Sleep", vbs)
+        self.assertIn("Loop", vbs)
+
+    def test_win_stop_autostart_ends_then_deletes_and_kills_vbs(self):
+        """Reinstall must stop BOTH keep-alive mechanisms before reclaiming the
+        port: /End then /Delete the schtasks task, and kill the .vbs supervisor
+        so it can't respawn node under the fresh proxy."""
         calls = []
 
         def fake_run(argv, **kw):
@@ -132,10 +111,16 @@ class WindowsPathTest(unittest.TestCase):
         finally:
             server.subprocess.run = orig
 
-        self.assertEqual(calls, [
+        sch = [c for c in calls if c and c[0] == "schtasks"]
+        self.assertEqual(sch, [
             ["schtasks", "/End", "/TN", server._WIN_TASK],
             ["schtasks", "/Delete", "/TN", server._WIN_TASK, "/F"],
         ])
+        # Also kills the per-user .vbs supervisor.
+        self.assertTrue(
+            any(c and c[0] == "powershell" and "run-proxy.vbs" in " ".join(c)
+                for c in calls),
+            "did not attempt to kill the run-proxy.vbs supervisor")
 
     def test_mimo2codex_script_windows_branch(self):
         """On Windows the resolver must look for node_modules/.../cli.js, not

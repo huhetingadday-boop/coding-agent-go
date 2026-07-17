@@ -3342,13 +3342,30 @@ def _systemd_user(sse, api_key, pv):
 
 
 _WIN_TASK = "coding-agent-go-mimo2codex"
+_WIN_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+_WIN_VBS = Path.home() / ".mimo2codex" / "run-proxy.vbs"
+
+
+def _decode_oem(b):
+    """Decode Windows console output (schtasks etc.). schtasks writes its text
+    in the OEM code page (cp936 on zh-CN Windows), not UTF-8 — decoding as
+    UTF-8 turned real errors like 'Access is denied' into '????' in the debug
+    log. 'oem' is Windows-only; elsewhere it raises and we fall back."""
+    if not b:
+        return ""
+    for enc in ("oem", "utf-8"):
+        try:
+            return b.decode(enc).strip()
+        except Exception:
+            pass
+    return b.decode("utf-8", errors="replace").strip()
 
 
 def _win_stop_autostart():
-    """End and delete any existing autostart task. Called before a reinstall
-    reclaims the proxy port, so the old task's RestartOnFailure can't respawn
-    node under us. Mirrors `launchctl unload` on mac. Best-effort — a missing
-    task just returns non-zero, which we ignore."""
+    """Remove any existing autostart before a reinstall reclaims the port, so a
+    stale keep-alive (Task Scheduler RestartOnFailure, or the .vbs supervisor
+    loop) can't respawn node right after _kill_port frees 17878. Mirrors
+    `launchctl unload` on mac. Best-effort — missing entries are ignored."""
     for args in (["/End", "/TN", _WIN_TASK],
                  ["/Delete", "/TN", _WIN_TASK, "/F"]):
         try:
@@ -3356,25 +3373,38 @@ def _win_stop_autostart():
                            creationflags=_NO_WINDOW)
         except Exception as e:
             _dbg(f"win_stop_autostart {args[0]}: {e}")
+    # Drop the per-user Run fallback and kill its supervisor loop.
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _WIN_RUN_KEY, 0,
+                            winreg.KEY_SET_VALUE) as k:
+            winreg.DeleteValue(k, _WIN_TASK)
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        _dbg(f"win_stop_autostart regdel: {e}")
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq "
+             "'wscript.exe' -and $_.CommandLine -like '*run-proxy.vbs*' } | "
+             "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],
+            capture_output=True, timeout=15, creationflags=_NO_WINDOW)
+    except Exception as e:
+        _dbg(f"win_stop_autostart killvbs: {e}")
 
 
-def _win_autostart(sse, pv):
-    # Run node.exe on cli.js directly (full paths) so Task Scheduler's stripped
-    # PATH never matters; the upstream key comes from ~/.mimo2codex/.env.
-    argv = _proxy_argv(pv)
-    node, rest = argv[0], argv[1:]
-    args_str = " ".join(f'"{a}"' if " " in a else a for a in rest)
-    xml = Path(tempfile.gettempdir()) / "coding-agent-go-mimo2codex-task.xml"
-    xml.write_text(
+def _win_task_xml(node, args_str):
+    """Task Scheduler XML. Keep-alive parity with mac (KeepAlive) / linux
+    (Restart=always): restart node whenever it dies, never let Task Scheduler
+    kill it after the 72h default, and start even on battery."""
+    return (
         # Task elements in the schema-canonical order: Triggers, Settings,
         # Actions. Defensive — modern schtasks tolerates other orders too.
         '<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">'
         '<Triggers><LogonTrigger/></Triggers>'
         '<Settings>'
         '<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>'
-        # Keep-alive parity with mac (KeepAlive) / linux (Restart=always):
-        # restart node whenever it dies, never let Task Scheduler kill it after
-        # the 72h default, and start even on battery so laptops don't skip it.
         '<RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure>'
         '<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>'
         '<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>'
@@ -3389,24 +3419,75 @@ def _win_autostart(sse, pv):
         '<Command>' + _xml_esc(node) + '</Command>'
         '<Arguments>' + _xml_esc(args_str) + '</Arguments>'
         '</Exec></Actions>'
-        '</Task>', encoding="utf-16")
+        '</Task>')
+
+
+def _win_supervisor_vbs(pv):
+    """A hidden keep-alive loop for the no-elevation Run-key path: launch node
+    hidden, wait for it, then relaunch 3s after it exits — forever. `0` hides
+    the window (no console flash), `True` waits. Stronger than Task Scheduler's
+    RestartOnFailure: no exit-0 gap and no restart-count cap."""
+    argv = _proxy_argv(pv)
+    cmdline = " ".join(f'"{a}"' if " " in a else a for a in argv)
+    vbs_cmd = cmdline.replace('"', '""')
+    return (
+        'Set sh = CreateObject("WScript.Shell")\r\n'
+        'Do\r\n'
+        f'  sh.Run "{vbs_cmd}", 0, True\r\n'
+        '  WScript.Sleep 3000\r\n'
+        'Loop\r\n')
+
+
+def _win_run_key_autostart(pv):
+    """Per-user autostart with NO elevation: write the hidden supervisor .vbs
+    and point HKCU\\...\\Run at it. Used when schtasks is denied — creating a
+    Task Scheduler task needs elevation on UAC-enabled admin accounts, which
+    the GUI installer does not have. Returns True on success."""
+    try:
+        _WIN_VBS.parent.mkdir(parents=True, exist_ok=True)
+        _WIN_VBS.write_text(_win_supervisor_vbs(pv), encoding="mbcs")
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _WIN_RUN_KEY, 0,
+                            winreg.KEY_SET_VALUE) as k:
+            winreg.SetValueEx(k, _WIN_TASK, 0, winreg.REG_SZ,
+                              f'wscript.exe "{_WIN_VBS}"')
+        return True
+    except Exception as e:
+        _dbg(f"win_run_key_autostart: {e}")
+        return False
+
+
+def _win_autostart(sse, pv):
+    # Run node.exe on cli.js directly (full paths) so a stripped PATH never
+    # matters; the upstream key comes from ~/.mimo2codex/.env.
+    argv = _proxy_argv(pv)
+    node, rest = argv[0], argv[1:]
+    args_str = " ".join(f'"{a}"' if " " in a else a for a in rest)
+    xml = Path(tempfile.gettempdir()) / "coding-agent-go-mimo2codex-task.xml"
+    xml.write_text(_win_task_xml(node, args_str), encoding="utf-16")
     global _autostart_ok
+    # 1) Prefer Task Scheduler — it gives RestartOnFailure keep-alive.
     try:
         r = subprocess.run(["schtasks", "/Create", "/TN", _WIN_TASK,
-                            "/XML", str(xml), "/F"], capture_output=True, timeout=15,
-                           creationflags=_NO_WINDOW)
+                            "/XML", str(xml), "/F"], capture_output=True,
+                           timeout=15, creationflags=_NO_WINDOW)
         if r.returncode == 0:
             _autostart_ok = True
             sse(log="  已配置开机自启 (Task Scheduler)", cls="dim")
-        else:
-            _autostart_ok = False
-            err = (r.stderr or b"").decode("utf-8", errors="replace").strip()[:160]
-            _dbg(f"schtasks_rc={r.returncode}: {err}")
-            sse(log="  ⚠ 开机自启没配上，重启后需重新运行本工具来启动代理", cls="warn")
+            return
+        _dbg(f"schtasks_rc={r.returncode}: {_decode_oem(r.stderr)[:160]}")
     except Exception as e:
-        _autostart_ok = False
         _dbg(f"schtasks_failed: {e}")
-        sse(log="  ⚠ 开机自启没配上，重启后需重新运行本工具来启动代理", cls="warn")
+    # 2) Fall back to a per-user Run key — schtasks is denied on UAC-enabled
+    #    admin accounts, but writing HKCU needs no elevation.
+    if _win_run_key_autostart(pv):
+        _autostart_ok = True
+        sse(log=_t("  已配置开机自启 (登录启动，免管理员)",
+                   "  Autostart configured (per-user logon, no admin needed)"),
+            cls="dim")
+        return
+    _autostart_ok = False
+    sse(log="  ⚠ 开机自启没配上，重启后需重新运行本工具来启动代理", cls="warn")
 
 
 def _kill_port(port):
