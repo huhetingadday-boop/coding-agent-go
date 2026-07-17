@@ -3223,6 +3223,11 @@ def _start_proxy(sse, pv, api_key):
         return
     sse(log=_t(f"启动 mimo2codex 代理 (端口 {PROXY_PORT})…",
                f"Starting the mimo2codex proxy (port {PROXY_PORT})…"), cls="dim")
+    if IS_WIN:
+        # Stop the old keep-alive task first. Without this its RestartOnFailure
+        # would respawn node right after _kill_port frees the port, colliding
+        # with the fresh proxy. Mirrors `launchctl unload` on mac.
+        _win_stop_autostart()
     _kill_port(PROXY_PORT)
     logf = Path(tempfile.gettempdir()) / "coding-agent-go-proxy.log"
     env = os.environ.copy()
@@ -3336,6 +3341,23 @@ def _systemd_user(sse, api_key, pv):
     sse(log="  已配置开机自启 (systemd user)", cls="dim")
 
 
+_WIN_TASK = "coding-agent-go-mimo2codex"
+
+
+def _win_stop_autostart():
+    """End and delete any existing autostart task. Called before a reinstall
+    reclaims the proxy port, so the old task's RestartOnFailure can't respawn
+    node under us. Mirrors `launchctl unload` on mac. Best-effort — a missing
+    task just returns non-zero, which we ignore."""
+    for args in (["/End", "/TN", _WIN_TASK],
+                 ["/Delete", "/TN", _WIN_TASK, "/F"]):
+        try:
+            subprocess.run(["schtasks", *args], capture_output=True, timeout=15,
+                           creationflags=_NO_WINDOW)
+        except Exception as e:
+            _dbg(f"win_stop_autostart {args[0]}: {e}")
+
+
 def _win_autostart(sse, pv):
     # Run node.exe on cli.js directly (full paths) so Task Scheduler's stripped
     # PATH never matters; the upstream key comes from ~/.mimo2codex/.env.
@@ -3344,19 +3366,33 @@ def _win_autostart(sse, pv):
     args_str = " ".join(f'"{a}"' if " " in a else a for a in rest)
     xml = Path(tempfile.gettempdir()) / "coding-agent-go-mimo2codex-task.xml"
     xml.write_text(
+        # Task elements in the schema-canonical order: Triggers, Settings,
+        # Actions. Defensive — modern schtasks tolerates other orders too.
         '<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">'
         '<Triggers><LogonTrigger/></Triggers>'
+        '<Settings>'
+        '<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>'
+        # Keep-alive parity with mac (KeepAlive) / linux (Restart=always):
+        # restart node whenever it dies, never let Task Scheduler kill it after
+        # the 72h default, and start even on battery so laptops don't skip it.
+        '<RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure>'
+        '<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>'
+        '<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>'
+        '<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>'
+        '<StartWhenAvailable>true</StartWhenAvailable>'
+        '<IdleSettings><StopOnIdleEnd>false</StopOnIdleEnd>'
+        '<RestartOnIdle>false</RestartOnIdle></IdleSettings>'
+        '<Enabled>true</Enabled>'
+        '<Hidden>true</Hidden>'
+        '</Settings>'
         '<Actions><Exec>'
         '<Command>' + _xml_esc(node) + '</Command>'
         '<Arguments>' + _xml_esc(args_str) + '</Arguments>'
         '</Exec></Actions>'
-        '<Settings><Enabled>true</Enabled><Hidden>true</Hidden>'
-        '<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>'
-        '</Settings>'
         '</Task>', encoding="utf-16")
     global _autostart_ok
     try:
-        r = subprocess.run(["schtasks", "/Create", "/TN", "coding-agent-go-mimo2codex",
+        r = subprocess.run(["schtasks", "/Create", "/TN", _WIN_TASK,
                             "/XML", str(xml), "/F"], capture_output=True, timeout=15,
                            creationflags=_NO_WINDOW)
         if r.returncode == 0:

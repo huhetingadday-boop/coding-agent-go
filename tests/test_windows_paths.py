@@ -76,6 +76,67 @@ class WindowsPathTest(unittest.TestCase):
         self.assertIn("--model", args[0].firstChild.data)
         self.assertIn("cag-glm", args[0].firstChild.data)
 
+    def test_win_autostart_is_keep_alive(self):
+        """The autostart task must keep the proxy running like mac KeepAlive /
+        linux Restart=always: restart node on death, no 72h execution cap, and
+        run even on battery. Locks in the symptom-2 fix."""
+        captured = {}
+
+        def fake_write(self_path, content, **kw):
+            captured["xml"] = content
+
+        orig = Path.write_text
+        Path.write_text = fake_write
+        try:
+            try:
+                server._win_autostart(lambda **k: None, self._glm())
+            except Exception:
+                pass
+        finally:
+            Path.write_text = orig
+
+        doc = minidom.parseString(captured.get("xml", ""))
+
+        def _text(tag):
+            els = doc.getElementsByTagName(tag)
+            return els[0].firstChild.data if els and els[0].firstChild else ""
+
+        # Restart node whenever it dies.
+        self.assertTrue(doc.getElementsByTagName("RestartOnFailure"),
+                        "missing <RestartOnFailure> — proxy won't survive a crash")
+        # Never let Task Scheduler kill a healthy long-lived proxy (default PT72H).
+        self.assertEqual(_text("ExecutionTimeLimit"), "PT0S")
+        # Laptops on battery must still start/keep the proxy.
+        self.assertEqual(_text("DisallowStartIfOnBatteries").lower(), "false")
+        self.assertEqual(_text("StopIfGoingOnBatteries").lower(), "false")
+
+    def test_win_stop_autostart_ends_then_deletes(self):
+        """Reinstall must stop the OLD keep-alive task before reclaiming the
+        port, else its RestartOnFailure respawns node under the fresh proxy.
+        Assert we /End then /Delete the exact task _win_autostart creates."""
+        calls = []
+
+        def fake_run(argv, **kw):
+            calls.append(argv)
+
+            class R:
+                returncode = 0
+                stdout = b""
+                stderr = b""
+            return R()
+
+        orig = server.subprocess.run
+        server.subprocess.run = fake_run
+        try:
+            server._win_stop_autostart()
+        finally:
+            server.subprocess.run = orig
+
+        self.assertEqual(calls, [
+            ["schtasks", "/End", "/TN", server._WIN_TASK],
+            ["schtasks", "/Delete", "/TN", server._WIN_TASK, "/F"],
+        ])
+
     def test_mimo2codex_script_windows_branch(self):
         """On Windows the resolver must look for node_modules/.../cli.js, not
         realpath the .cmd shim."""
